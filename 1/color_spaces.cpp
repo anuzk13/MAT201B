@@ -21,6 +21,8 @@ using namespace std;
 class MyApp : public App {
 public:
   Texture texture;
+  Mesh mesh;
+
 
   void onCreate() {
     // Load a .jpg file
@@ -39,20 +41,31 @@ public:
     texture.submit(imageData.array().data(), GL_RGBA, GL_UNSIGNED_BYTE);
 
     texture.filter(Texture::LINEAR);
+
+    // Generate the geometry onto which to display the texture
+    mesh.primitive(Mesh::TRIANGLE_STRIP);
+    mesh.vertex(-1, 1);
+    mesh.vertex(-1, -1);
+    mesh.vertex(1, 1);
+    mesh.vertex(1, -1);
+
+    // Add texture coordinates
+    mesh.texCoord(0, 1);
+    mesh.texCoord(0, 0);
+    mesh.texCoord(1, 1);
+    mesh.texCoord(1, 0);
+
+    nav().pullBack(4);
   }
 
   void onDraw(Graphics &g) {
     g.clear(0.2f);
 
-    g.pushMatrix();
-
-    // Push the texture/quad back 5 units (away from the camera)
-    //
-    g.translate(0, 0, -5);
-
-    g.quad(texture, -1, -1, 2, 2);
-
-    g.popMatrix();
+     // We must tell the GPU to use the texture when rendering primitives
+    texture.bind();
+    g.texture(); // Use texture for mesh coloring
+    g.draw(mesh);
+    texture.unbind();
   }
 };
 
