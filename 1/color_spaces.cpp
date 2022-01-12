@@ -25,7 +25,7 @@ public:
   Mesh mesh;
   // Mesh wire;
   int keyMode;
-  int imgWidth;
+  int imgWidth, imgHeight;
 
   void onCreate() {
     keyMode = 1;
@@ -41,13 +41,14 @@ public:
          << imageData.height() << endl;
 
     imgWidth = imageData.width();
+    imgHeight = imageData.height();
 
-    for (int j = 0; j < imageData.height(); ++j) {
-      for (int i = 0; i < imageData.width(); ++i) {
+    for (int j = 0; j < imgHeight; ++j) {
+      for (int i = 0; i < imgWidth; ++i) {
         auto pixel = imageData.at(i, j);
          // remap from 0, width to -1,1
-        float mapX = map(-1,1,0,imageData.width(),(float)i);
-        float mapY = map(-1,1,0,imageData.height(),(float)j);
+        float mapX = map(-1,1,0,imgWidth,(float)i);
+        float mapY = map(-1,1,0,imgHeight,(float)j);
          // remap from 0, 255 to 0,1
         float mapR = map(0,1,0,255,(float)pixel.r);
         float mapG = map(0,1,0,255,(float)pixel.g);
@@ -94,25 +95,28 @@ public:
 
   void onAnimate(double dt_ms) {
     if (keyMode == 1) {
-      // auto& vertex = mesh.vertices(); // 'vertex' becomes an alias for 'mesh.vertices()'
-      // for (int i = 1; i < vertex.size(); i++) {
-      //   int x = i % imgWidth;
-      //   int y = i / imgWidth;
-      //   Vec3f newPos = Vec3f(x/10,y/10,0);
-      //   vertex[i].lerp(newPos, 0.01);
-      // }
+      auto& vertex = mesh.vertices(); // 'vertex' becomes an alias for 'mesh.vertices()'
+      for (int i = 1; i < vertex.size(); i++) {
+        int x = i % imgWidth;
+        int y = i / imgWidth;
+        float mapX = map(-1,1,0,imgWidth,(float)x);
+        float mapY = map(-1,1,0,imgHeight,(float)y);
+        Vec3f newPos = Vec3f(mapX,mapY,0);
+        vertex[i].lerp(newPos, 0.01);
+      }
       
     } else if (keyMode == 2) {
       auto& vertex = mesh.vertices(); // 'vertex' becomes an alias for 'mesh.vertices()'
       auto& colors = mesh.colors();
       for (int i = 1; i < vertex.size(); i++) {
-        float rNorm = ((int)colors[i].r)/10 - 25/2;
-        float gNorm = ((int)colors[i].g)/10 - 25/2;
-        float bNorm = ((int)colors[i].b)/10 - 25/2;
-        Vec3f newPos = Vec3f(rNorm,gNorm,bNorm);
+        float mapR = map(-1,1,0,1,colors[i].r);
+        float mapG = map(-1,1,0,1,colors[i].g);
+        float mapB = map(-1,1,0,1,colors[i].b);
+        Vec3f newPos = Vec3f(mapR,mapG,mapB);
         vertex[i].lerp(newPos, 0.01);
       }
     } else if (keyMode == 3) {
+      // this might have broken due new values of color
       auto& vertex = mesh.vertices(); // 'vertex' becomes an alias for 'mesh.vertices()'
       auto& colors = mesh.colors();
       for (int i = 1; i < colors.size(); i++) {
