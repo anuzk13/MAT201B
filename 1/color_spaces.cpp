@@ -24,6 +24,7 @@ public:
   Mesh mesh;
   // Mesh wire;
   int keyMode;
+  int imgWidth;
 
   void onCreate() {
     keyMode = 1;
@@ -37,6 +38,8 @@ public:
     }
     cout << "loaded image size: " << imageData.width() << ", "
          << imageData.height() << endl;
+
+    imgWidth = imageData.width();
 
     for (int j = 0; j < imageData.height(); ++j) {
       for (int i = 0; i < imageData.width(); ++i) {
@@ -71,16 +74,27 @@ public:
   }
 
   bool onKeyDown(const Keyboard &k) {
-    if (k.key() == ' ') {
+    if (k.key() == '1') {
       // Press space bar to change mode
-    } else if (k.key() == 's') {
+      keyMode = 1;
+    } else if (k.key() == '2') {
       // Press s to change mode
+      keyMode = 2;
     }
     return true;
   }
 
   void onAnimate(double dt_ms) {
     if (keyMode == 1) {
+      auto& vertex = mesh.vertices(); // 'vertex' becomes an alias for 'mesh.vertices()'
+      for (int i = 1; i < vertex.size(); i++) {
+        int x = i % imgWidth;
+        int y = i / imgWidth;
+        Vec3f newPos = Vec3f(x/10,y/10,0);
+        vertex[i].lerp(newPos, 0.01);
+      }
+      
+    } else if (keyMode == 2) {
       auto& vertex = mesh.vertices(); // 'vertex' becomes an alias for 'mesh.vertices()'
       auto& colors = mesh.colors();
       for (int i = 1; i < vertex.size(); i++) {
