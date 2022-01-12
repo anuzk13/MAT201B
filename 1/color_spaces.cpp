@@ -77,25 +77,37 @@ public:
 
   bool onKeyDown(const Keyboard &k) {
     if (k.key() == '1') {
-      // Press space bar to change mode
+      // Image mode
       keyMode = 1;
     } else if (k.key() == '2') {
-      // Press s to change mode
+      // RGB Mode
       keyMode = 2;
     }  else if (k.key() == '3') {
-      // Press s to change mode
+      // HSV Mode
       keyMode = 3;
     }
     else if (k.key() == '4') {
-      // Press s to change mode
+      // CIE Mode
       keyMode = 4;
+    }
+    else if (k.key() == '5') {
+      // Lab Mode
+      keyMode = 5;
+    }
+    else if (k.key() == '6') {
+      // HCLab Mode
+      keyMode = 6;
+    }
+    else if (k.key() == '7') {
+      // Luv Mode
+      keyMode = 7;
     }
     return true;
   }
 
   void onAnimate(double dt_ms) {
     if (keyMode == 1) {
-      auto& vertex = mesh.vertices(); // 'vertex' becomes an alias for 'mesh.vertices()'
+      auto& vertex = mesh.vertices();
       for (int i = 1; i < vertex.size(); i++) {
         int x = i % imgWidth;
         int y = i / imgWidth;
@@ -106,7 +118,7 @@ public:
       }
       
     } else if (keyMode == 2) {
-      auto& vertex = mesh.vertices(); // 'vertex' becomes an alias for 'mesh.vertices()'
+      auto& vertex = mesh.vertices();
       auto colors = mesh.colors();
       for (int i = 1; i < vertex.size(); i++) {
         float mapR = map(-1,1,0,1,colors[i].r);
@@ -116,7 +128,7 @@ public:
         vertex[i].lerp(newPos, 0.01);
       }
     } else if (keyMode == 3) {
-      auto& vertex = mesh.vertices(); // 'vertex' becomes an alias for 'mesh.vertices()'
+      auto& vertex = mesh.vertices();
       auto colors = mesh.colors();
       for (int i = 1; i < colors.size(); i++) {
         HSV hsvColor = HSV(colors[i]);
@@ -129,13 +141,61 @@ public:
         vertex[i].lerp(newPos, 0.01);
       }
     } else if (keyMode == 4) {
-      auto& vertex = mesh.vertices(); // 'vertex' becomes an alias for 'mesh.vertices()'
+      auto& vertex = mesh.vertices();
       auto colors = mesh.colors();
       for (int i = 1; i < colors.size(); i++) {
+        //  r< red component in [0, 1]
+        //  g< green component in [0, 1]
+        //  b< blue component in [0, 1]
         CIE_XYZ cieColor = CIE_XYZ(colors[i]);
         float x = map(-1,1,0,1,cieColor.x);
         float y = map(-1,1,0,1,cieColor.y);
         float z = map(-1,1,0,1,cieColor.z);
+        Vec3f newPos = Vec3f(x,y,z);
+        vertex[i].lerp(newPos, 0.01);
+      }
+    } else if (keyMode == 5) {
+      auto& vertex = mesh.vertices();
+      auto colors = mesh.colors();
+      for (int i = 1; i < colors.size(); i++) {
+        
+        //  l< Lightness component in [0, 100]
+        //  a< red-green axis (red is positive, green is negative)
+        //    range in [-85.9293, 97.9631] (8-bit rgb gamut)
+        //  b< yellow-blue axis (yellow is positive, blue is
+        //    negative) range in [-107.544, 94.2025]
+        Lab labColor = Lab(colors[i]);
+        float x = map(-1,1,0,100,labColor.l);
+        float y = map(-1,1,-85.9293, 97.9631,labColor.a);
+        float z = map(-1,1,-107.544, 94.2025,labColor.b);
+        Vec3f newPos = Vec3f(x,y,z);
+        vertex[i].lerp(newPos, 0.01);
+      }
+    } else if (keyMode == 6) {
+      auto& vertex = mesh.vertices();
+      auto colors = mesh.colors();
+      for (int i = 1; i < colors.size(); i++) {
+        // h< hue component in [0, 1]
+        // c< chroma component in [0, 1]
+        // l< luminance(ab) component in [0, 1]
+        HCLab hcLabColor = HCLab(colors[i]);
+        float x = map(-1,1,0,1,hcLabColor.h);
+        float y = map(-1,1,0,1,hcLabColor.c);
+        float z = map(-1,1,0,1,hcLabColor.l);
+        Vec3f newPos = Vec3f(x,y,z);
+        vertex[i].lerp(newPos, 0.01);
+      }
+    } else if (keyMode == 7) {
+      auto& vertex = mesh.vertices();
+      auto colors = mesh.colors();
+      for (int i = 1; i < colors.size(); i++) {
+        //  l< Lightness component in [0, 100]
+        //  u< red-green axis in [-82.7886, 174.378] (8-bit rgb gamut)
+        //  v< yellow-blue axis in [-133.556, 107.025]
+        Luv luvColor = Luv(colors[i]);
+        float x = map(-1,1,0, 100,luvColor.l);
+        float y = map(-1,1,-82.7886, 174.378,luvColor.u);
+        float z = map(-1,1,-133.556, 107.025,luvColor.v);
         Vec3f newPos = Vec3f(x,y,z);
         vertex[i].lerp(newPos, 0.01);
       }
