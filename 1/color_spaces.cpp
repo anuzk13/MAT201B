@@ -129,7 +129,16 @@ public:
         vertex[i].lerp(newPos, 0.01);
       }
     } else if (keyMode == 4) {
-      // TODO: my custom animation
+      auto& vertex = mesh.vertices(); // 'vertex' becomes an alias for 'mesh.vertices()'
+      auto& colors = mesh.colors();
+      for (int i = 1; i < colors.size(); i++) {
+        CIE_XYZ cieColor = CIE_XYZ(colors[i]);
+        float x = map(-1,1,0,1,cieColor.x);
+        float y = map(-1,1,0,1,cieColor.y);
+        float z = map(-1,1,0,1,cieColor.z);
+        Vec3f newPos = Vec3f(x,y,z);
+        vertex[i].lerp(newPos, 0.01);
+      }
     }
   }
 
