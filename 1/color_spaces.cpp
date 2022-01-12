@@ -116,18 +116,16 @@ public:
         vertex[i].lerp(newPos, 0.01);
       }
     } else if (keyMode == 3) {
-      // this might have broken due new values of color
       auto& vertex = mesh.vertices(); // 'vertex' becomes an alias for 'mesh.vertices()'
       auto& colors = mesh.colors();
       for (int i = 1; i < colors.size(); i++) {
-        // use the constructor of HSV instead of the function
-        // @param[in] v      RGB color to convert from
-        // HSV(const RGB &v) { *this = v; }
-        Vec3f hsv = rgb2hsv(colors[i]);
-        float x = hsv[1] * cos(hsv[0]);
-        float y = hsv[1] * sin(hsv[0]);
-        float z = hsv[2];
-        Vec3f newPos = Vec3f(x*10,y*10, z/10);
+        HSV hsvColor = HSV(colors[i]);
+        float degrees = map(0,360,0,1,hsvColor.h);
+        float radians = degrees * M_PI / 180.0;
+        float x = hsvColor.s * cos(radians);
+        float y = hsvColor.s * sin(radians);
+        float z = map(-1,1,0,1,hsvColor.v);
+        Vec3f newPos = Vec3f(x,y,z);
         vertex[i].lerp(newPos, 0.01);
       }
     } else if (keyMode == 4) {
@@ -137,51 +135,6 @@ public:
 
   float map (float min_d, float max_d, float min_o, float max_o, float x) {
     return (max_d-min_d)*(x - min_o) / (max_o - min_o) + min_d ;
-  }
-
-  // modified from https://stackoverflow.com/questions/3018313/algorithm-to-convert-rgb-to-hsv-and-hsv-to-rgb-in-range-0-255-for-both
-  Vec3f rgb2hsv(Color in)
-  {
-      float h,s,v;
-      double  min, max, delta;
-
-      min = in.r < in.g ? in.r : in.g;
-      min = min  < in.b ? min  : in.b;
-
-      max = in.r > in.g ? in.r : in.g;
-      max = max  > in.b ? max  : in.b;
-
-      v = max;                                // v
-      delta = max - min;
-      if (delta < 0.00001)
-      {
-          s = 0;
-          h = 0; // undefined, maybe nan?
-          return Vec3f(h,s,v);
-      }
-      if( max > 0.0 ) { // NOTE: if Max is == 0, this divide would cause a crash
-          s = (delta / max);                  // s
-      } else {
-          // if max is 0, then r = g = b = 0              
-          // s = 0, h is undefined
-          s = 0.0;
-          h = NAN;                            // its now undefined
-          return Vec3f(h,s,v);
-      }
-      if( in.r >= max )                           // > is bogus, just keeps compilor happy
-          h = ( in.g - in.b ) / delta;        // between yellow & magenta
-      else
-      if( in.g >= max )
-          h = 2.0 + ( in.b - in.r ) / delta;  // between cyan & yellow
-      else
-          h = 4.0 + ( in.r - in.g ) / delta;  // between magenta & cyan
-
-      h *= 60.0;                              // degrees
-
-      if( h < 0.0 )
-          h += 360.0;
-
-      return Vec3f(h,s,v);;
   }
 
 };
