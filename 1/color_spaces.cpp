@@ -30,7 +30,7 @@ public:
   void onCreate() {
     keyMode = 1;
     // Load a .jpg file
-    const char *filename = "./data/colors.jpg";
+    const char *filename = "./data/colors3.jpg";
 
     auto imageData = Image(filename);
 
@@ -48,7 +48,7 @@ public:
         auto pixel = imageData.at(i, j);
          // remap from 0, width to -1,1
         float mapX = map(-1,1,0,imgWidth,(float)i);
-        float mapY = map(-1,1,0,imgHeight,(float)j);
+        float mapY = map(1,-1,0,imgHeight,(float)j);
          // remap from 0, 255 to 0,1
         float mapR = map(0,1,0,255,(float)pixel.r);
         float mapG = map(0,1,0,255,(float)pixel.g);
@@ -102,6 +102,10 @@ public:
       // Luv Mode
       keyMode = 7;
     }
+    else if (k.key() == '8') {
+      // Loop Animation Mode
+      keyMode = 8;
+    }
     return true;
   }
 
@@ -112,7 +116,7 @@ public:
         int x = i % imgWidth;
         int y = i / imgWidth;
         float mapX = map(-1,1,0,imgWidth,(float)x);
-        float mapY = map(-1,1,0,imgHeight,(float)y);
+        float mapY = map(1,-1,0,imgHeight,(float)y);
         Vec3f newPos = Vec3f(mapX,mapY,0);
         vertex[i].lerp(newPos, 0.01);
       }
@@ -198,6 +202,16 @@ public:
         float z = map(-1,1,-133.556, 107.025,luvColor.v);
         Vec3f newPos = Vec3f(x,y,z);
         vertex[i].lerp(newPos, 0.01);
+      }
+    }
+    else if (keyMode == 8) {
+      auto& vertex = mesh.vertices();
+      auto colors = mesh.colors();
+      float speed = map(0.01,0.05,0, 1,colors[0].r);
+      vertex[0].lerp(vertex.back(), speed);
+      for (int i = 1; i < vertex.size(); i++) {
+        float speed = map(0.01,0.05,0, 1,colors[i].r);
+        vertex[i].lerp(vertex[i - 1], speed);
       }
     }
   }
