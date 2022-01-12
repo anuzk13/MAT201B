@@ -122,6 +122,7 @@ public:
     }
   }
 
+  // modified from https://stackoverflow.com/questions/3018313/algorithm-to-convert-rgb-to-hsv-and-hsv-to-rgb-in-range-0-255-for-both
   Vec3f rgb2hsv(Color in)
   {
       float h,s,v;
