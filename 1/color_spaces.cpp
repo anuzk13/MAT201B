@@ -26,6 +26,13 @@ public:
   // Mesh wire;
   int keyMode;
   int imgWidth, imgHeight;
+  vector<Vec3f> posMap;
+  vector<Vec3f> rgbMap;
+  vector<Vec3f> hsvMap;
+  vector<Vec3f> cieMap;
+  vector<Vec3f> labMap;
+  vector<Vec3f> hclabMap;
+  vector<Vec3f> luvMap;
 
   void onCreate() {
     keyMode = 1;
@@ -54,7 +61,67 @@ public:
         float mapG = map(0,1,0,255,(float)pixel.g);
         float mapB = map(0,1,0,255,(float)pixel.b);
         mesh.vertex(mapX,mapY);
-        mesh.color(mapR,mapG,mapB);
+        Color color = Color(mapR,mapG,mapB);
+        mesh.color(color);
+        posMap.push_back(Vec3f(mapX,mapY,0));
+
+        // rbg position
+        float x = map(-1,1,0,1,mapR);
+        float y = map(-1,1,0,1,mapG);
+        float z = map(-1,1,0,1,mapB);
+        rgbMap.push_back(Vec3f(mapR,mapG,mapB));
+
+        // hsv position
+        HSV hsvColor = HSV(color);
+        float degrees = map(0,360,0,1,hsvColor.h);
+        float radians = degrees * M_PI / 180.0;
+        x = hsvColor.s * cos(radians);
+        y = hsvColor.s * sin(radians);
+        z = map(-1,1,0,1,hsvColor.v);
+        hsvMap.push_back(Vec3f(x,y,z));
+
+        // cie position
+        //  r< red component in [0, 1]
+        //  g< green component in [0, 1]
+        //  b< blue component in [0, 1]
+        CIE_XYZ cieColor = CIE_XYZ(color);
+        x = map(-1,1,0,1,cieColor.x);
+        y = map(-1,1,0,1,cieColor.y);
+        z = map(-1,1,0,1,cieColor.z);
+        cieMap.push_back(Vec3f(x,y,z));
+
+        // lab position
+        //  l< Lightness component in [0, 100]
+        //  a< red-green axis (red is positive, green is negative)
+        //    range in [-85.9293, 97.9631] (8-bit rgb gamut)
+        //  b< yellow-blue axis (yellow is positive, blue is
+        //    negative) range in [-107.544, 94.2025]
+        Lab labColor = Lab(color);
+        x = map(-1,1,0,100,labColor.l);
+        y = map(-1,1,-85.9293, 97.9631,labColor.a);
+        z = map(-1,1,-107.544, 94.2025,labColor.b);
+        labMap.push_back(Vec3f(x,y,z));
+
+        // hclab position
+        // h< hue component in [0, 1]
+        // c< chroma component in [0, 1]
+        // l< luminance(ab) component in [0, 1]
+        HCLab hcLabColor = HCLab(color);
+        x = map(-1,1,0,1,hcLabColor.h);
+        y = map(-1,1,0,1,hcLabColor.c);
+        z = map(-1,1,0,1,hcLabColor.l);
+        Vec3f newPos = Vec3f(x,y,z);
+        hclabMap.push_back(newPos);
+
+        // luv position
+         //  l< Lightness component in [0, 100]
+        //  u< red-green axis in [-82.7886, 174.378] (8-bit rgb gamut)
+        //  v< yellow-blue axis in [-133.556, 107.025]
+        Luv luvColor = Luv(color);
+        x = map(-1,1,0, 100,luvColor.l);
+        y = map(-1,1,-82.7886, 174.378,luvColor.u);
+        z = map(-1,1,-133.556, 107.025,luvColor.v);
+        luvMap.push_back(Vec3f(x,y,z));
       }
     }
     // Generate the geometry onto which to display the texture
@@ -113,95 +180,44 @@ public:
     if (keyMode == 1) {
       auto& vertex = mesh.vertices();
       for (int i = 1; i < vertex.size(); i++) {
-        int x = i % imgWidth;
-        int y = i / imgWidth;
-        float mapX = map(-1,1,0,imgWidth,(float)x);
-        float mapY = map(1,-1,0,imgHeight,(float)y);
-        Vec3f newPos = Vec3f(mapX,mapY,0);
-        vertex[i].lerp(newPos, 0.01);
+        vertex[i].lerp(posMap[i], 0.01);
       }
       
     } else if (keyMode == 2) {
       auto& vertex = mesh.vertices();
       auto colors = mesh.colors();
       for (int i = 1; i < vertex.size(); i++) {
-        float mapR = map(-1,1,0,1,colors[i].r);
-        float mapG = map(-1,1,0,1,colors[i].g);
-        float mapB = map(-1,1,0,1,colors[i].b);
-        Vec3f newPos = Vec3f(mapR,mapG,mapB);
-        vertex[i].lerp(newPos, 0.01);
+        vertex[i].lerp(rgbMap[i], 0.01);
       }
     } else if (keyMode == 3) {
       auto& vertex = mesh.vertices();
       auto colors = mesh.colors();
       for (int i = 1; i < colors.size(); i++) {
-        HSV hsvColor = HSV(colors[i]);
-        float degrees = map(0,360,0,1,hsvColor.h);
-        float radians = degrees * M_PI / 180.0;
-        float x = hsvColor.s * cos(radians);
-        float y = hsvColor.s * sin(radians);
-        float z = map(-1,1,0,1,hsvColor.v);
-        Vec3f newPos = Vec3f(x,y,z);
-        vertex[i].lerp(newPos, 0.01);
+        vertex[i].lerp(hsvMap[i], 0.01);
       }
     } else if (keyMode == 4) {
       auto& vertex = mesh.vertices();
       auto colors = mesh.colors();
       for (int i = 1; i < colors.size(); i++) {
-        //  r< red component in [0, 1]
-        //  g< green component in [0, 1]
-        //  b< blue component in [0, 1]
-        CIE_XYZ cieColor = CIE_XYZ(colors[i]);
-        float x = map(-1,1,0,1,cieColor.x);
-        float y = map(-1,1,0,1,cieColor.y);
-        float z = map(-1,1,0,1,cieColor.z);
-        Vec3f newPos = Vec3f(x,y,z);
-        vertex[i].lerp(newPos, 0.01);
+        vertex[i].lerp(cieMap[i], 0.01);
       }
     } else if (keyMode == 5) {
       auto& vertex = mesh.vertices();
       auto colors = mesh.colors();
       for (int i = 1; i < colors.size(); i++) {
-        
-        //  l< Lightness component in [0, 100]
-        //  a< red-green axis (red is positive, green is negative)
-        //    range in [-85.9293, 97.9631] (8-bit rgb gamut)
-        //  b< yellow-blue axis (yellow is positive, blue is
-        //    negative) range in [-107.544, 94.2025]
-        Lab labColor = Lab(colors[i]);
-        float x = map(-1,1,0,100,labColor.l);
-        float y = map(-1,1,-85.9293, 97.9631,labColor.a);
-        float z = map(-1,1,-107.544, 94.2025,labColor.b);
-        Vec3f newPos = Vec3f(x,y,z);
-        vertex[i].lerp(newPos, 0.01);
+        vertex[i].lerp(labMap[i], 0.01);
       }
     } else if (keyMode == 6) {
       auto& vertex = mesh.vertices();
       auto colors = mesh.colors();
       for (int i = 1; i < colors.size(); i++) {
-        // h< hue component in [0, 1]
-        // c< chroma component in [0, 1]
-        // l< luminance(ab) component in [0, 1]
-        HCLab hcLabColor = HCLab(colors[i]);
-        float x = map(-1,1,0,1,hcLabColor.h);
-        float y = map(-1,1,0,1,hcLabColor.c);
-        float z = map(-1,1,0,1,hcLabColor.l);
-        Vec3f newPos = Vec3f(x,y,z);
-        vertex[i].lerp(newPos, 0.01);
+        vertex[i].lerp(hclabMap[i], 0.01);
       }
     } else if (keyMode == 7) {
       auto& vertex = mesh.vertices();
       auto colors = mesh.colors();
       for (int i = 1; i < colors.size(); i++) {
-        //  l< Lightness component in [0, 100]
-        //  u< red-green axis in [-82.7886, 174.378] (8-bit rgb gamut)
-        //  v< yellow-blue axis in [-133.556, 107.025]
-        Luv luvColor = Luv(colors[i]);
-        float x = map(-1,1,0, 100,luvColor.l);
-        float y = map(-1,1,-82.7886, 174.378,luvColor.u);
-        float z = map(-1,1,-133.556, 107.025,luvColor.v);
-        Vec3f newPos = Vec3f(x,y,z);
-        vertex[i].lerp(newPos, 0.01);
+        vertex[i].lerp(luvMap[i], 0.01);
       }
     }
     else if (keyMode == 8) {
