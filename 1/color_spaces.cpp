@@ -30,7 +30,7 @@ public:
   void onCreate() {
     keyMode = 1;
     // Load a .jpg file
-    const char *filename = "./data/colors3.jpg";
+    const char *filename = "./data/colors.jpg";
 
     auto imageData = Image(filename);
 
