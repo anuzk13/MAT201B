@@ -45,11 +45,15 @@ public:
     for (int j = 0; j < imageData.height(); ++j) {
       for (int i = 0; i < imageData.width(); ++i) {
         auto pixel = imageData.at(i, j);
+         // remap from 0, width to -1,1
         float mapX = map(-1,1,0,imageData.width(),(float)i);
         float mapY = map(-1,1,0,imageData.height(),(float)j);
+         // remap from 0, 255 to 0,1
+        float mapR = map(0,1,0,255,(float)pixel.r);
+        float mapG = map(0,1,0,255,(float)pixel.g);
+        float mapB = map(0,1,0,255,(float)pixel.b);
         mesh.vertex(mapX,mapY);
-        // remap from 0, 255 to 0,1
-        mesh.color((int)pixel.r,(int)pixel.g,(int)pixel.b);
+        mesh.color(mapR,mapG,mapB);
       }
     }
     // Generate the geometry onto which to display the texture
