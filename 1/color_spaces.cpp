@@ -45,12 +45,11 @@ public:
     for (int j = 0; j < imageData.height(); ++j) {
       for (int i = 0; i < imageData.width(); ++i) {
         auto pixel = imageData.at(i, j);
-        float mapX = 2* (float)i/ imageData.width() -1;
-        float mapY = 2* (float)j/ imageData.height() -1;
+        float mapX = map(-1,1,0,imageData.width(),(float)i);
+        float mapY = map(-1,1,0,imageData.height(),(float)j);
         mesh.vertex(mapX,mapY);
         // remap from 0, 255 to 0,1
         mesh.color((int)pixel.r,(int)pixel.g,(int)pixel.b);
-        cout << "red value" << (int)pixel.r << endl;
       }
     }
     // Generate the geometry onto which to display the texture
@@ -126,6 +125,10 @@ public:
     } else if (keyMode == 4) {
       // TODO: my custom animation
     }
+  }
+
+  float map (float min_d, float max_d, float min_o, float max_o, float x) {
+    return (max_d-min_d)*(x - min_o) / (max_o - min_o) + min_d ;
   }
 
   // modified from https://stackoverflow.com/questions/3018313/algorithm-to-convert-rgb-to-hsv-and-hsv-to-rgb-in-range-0-255-for-both
