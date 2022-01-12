@@ -45,20 +45,17 @@ public:
     for (int j = 0; j < imageData.height(); ++j) {
       for (int i = 0; i < imageData.width(); ++i) {
         auto pixel = imageData.at(i, j);
-        // this does not seem to show anything
-        // float rNorm = ((int)pixel.r/255 * 2) -1;
-        // float gNorm = ((int)pixel.r/255 * 2) -1;
-        // float bNorm = ((int)pixel.r/255 * 2) -1;
-        // float rNorm = ((int)pixel.r)/10 - 25/2;
-        // float gNorm = ((int)pixel.g)/10 - 25/2;
-        // float bNorm = ((int)pixel.b)/10 - 25/2;
-        mesh.vertex(i/10,j/10,0);
+        float mapX = 2* (float)i/ imageData.width() -1;
+        float mapY = 2* (float)j/ imageData.height() -1;
+        mesh.vertex(mapX,mapY);
+        // remap from 0, 255 to 0,1
         mesh.color((int)pixel.r,(int)pixel.g,(int)pixel.b);
+        cout << "red value" << (int)pixel.r << endl;
       }
     }
     // Generate the geometry onto which to display the texture
     mesh.primitive(Mesh::POINTS);
-    nav().pullBack(100);
+    nav().pullBack(4);
 
   }
 
@@ -66,7 +63,7 @@ public:
     //color of bakcgrund
     g.clear(0.2f);
     // size of point primitive
-    g.pointSize(8);
+    g.pointSize(1);
     // need to call this to show colors
     g.meshColor();
      // draw the mesh
@@ -85,18 +82,22 @@ public:
       // Press s to change mode
       keyMode = 3;
     }
+    else if (k.key() == '4') {
+      // Press s to change mode
+      keyMode = 4;
+    }
     return true;
   }
 
   void onAnimate(double dt_ms) {
     if (keyMode == 1) {
-      auto& vertex = mesh.vertices(); // 'vertex' becomes an alias for 'mesh.vertices()'
-      for (int i = 1; i < vertex.size(); i++) {
-        int x = i % imgWidth;
-        int y = i / imgWidth;
-        Vec3f newPos = Vec3f(x/10,y/10,0);
-        vertex[i].lerp(newPos, 0.01);
-      }
+      // auto& vertex = mesh.vertices(); // 'vertex' becomes an alias for 'mesh.vertices()'
+      // for (int i = 1; i < vertex.size(); i++) {
+      //   int x = i % imgWidth;
+      //   int y = i / imgWidth;
+      //   Vec3f newPos = Vec3f(x/10,y/10,0);
+      //   vertex[i].lerp(newPos, 0.01);
+      // }
       
     } else if (keyMode == 2) {
       auto& vertex = mesh.vertices(); // 'vertex' becomes an alias for 'mesh.vertices()'
@@ -112,6 +113,9 @@ public:
       auto& vertex = mesh.vertices(); // 'vertex' becomes an alias for 'mesh.vertices()'
       auto& colors = mesh.colors();
       for (int i = 1; i < colors.size(); i++) {
+        // use the constructor of HSV instead of the function
+        // @param[in] v      RGB color to convert from
+        // HSV(const RGB &v) { *this = v; }
         Vec3f hsv = rgb2hsv(colors[i]);
         float x = hsv[1] * cos(hsv[0]);
         float y = hsv[1] * sin(hsv[0]);
@@ -119,6 +123,8 @@ public:
         Vec3f newPos = Vec3f(x*10,y*10, z/10);
         vertex[i].lerp(newPos, 0.01);
       }
+    } else if (keyMode == 4) {
+      // TODO: my custom animation
     }
   }
 
