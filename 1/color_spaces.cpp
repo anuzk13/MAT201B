@@ -107,7 +107,7 @@ public:
       
     } else if (keyMode == 2) {
       auto& vertex = mesh.vertices(); // 'vertex' becomes an alias for 'mesh.vertices()'
-      auto& colors = mesh.colors();
+      auto colors = mesh.colors();
       for (int i = 1; i < vertex.size(); i++) {
         float mapR = map(-1,1,0,1,colors[i].r);
         float mapG = map(-1,1,0,1,colors[i].g);
@@ -117,7 +117,7 @@ public:
       }
     } else if (keyMode == 3) {
       auto& vertex = mesh.vertices(); // 'vertex' becomes an alias for 'mesh.vertices()'
-      auto& colors = mesh.colors();
+      auto colors = mesh.colors();
       for (int i = 1; i < colors.size(); i++) {
         HSV hsvColor = HSV(colors[i]);
         float degrees = map(0,360,0,1,hsvColor.h);
@@ -130,7 +130,7 @@ public:
       }
     } else if (keyMode == 4) {
       auto& vertex = mesh.vertices(); // 'vertex' becomes an alias for 'mesh.vertices()'
-      auto& colors = mesh.colors();
+      auto colors = mesh.colors();
       for (int i = 1; i < colors.size(); i++) {
         CIE_XYZ cieColor = CIE_XYZ(colors[i]);
         float x = map(-1,1,0,1,cieColor.x);
