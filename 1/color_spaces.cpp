@@ -26,6 +26,7 @@ public:
   // Mesh wire;
   int keyMode;
   int imgWidth, imgHeight;
+  double t = 1.0;
   vector<Vec3f> posMap;
   vector<Vec3f> rgbMap;
   vector<Vec3f> hsvMap;
@@ -37,12 +38,13 @@ public:
   void onCreate() {
     keyMode = 1;
     // Load a .jpg file
-    const char *filename = "./data/colors.jpg";
+    const char *filename = "./data/colors2.jpg";
 
     auto imageData = Image(filename);
 
     if (imageData.array().size() == 0) {
       cout << "failed to load image" << endl;
+      exit(1);
     }
     cout << "loaded image size: " << imageData.width() << ", "
          << imageData.height() << endl;
@@ -143,6 +145,7 @@ public:
   }
 
   bool onKeyDown(const Keyboard &k) {
+    t = 0.0;
     if (k.key() == '1') {
       // Image mode
       keyMode = 1;
@@ -177,56 +180,61 @@ public:
   }
 
   void onAnimate(double dt_ms) {
+    if (t < 1.0) {
+      t += dt_ms;
+    } else {
+      t = 1.0;
+    }
     if (keyMode == 1) {
       auto& vertex = mesh.vertices();
       for (int i = 1; i < vertex.size(); i++) {
-        vertex[i].lerp(posMap[i], 0.01);
+        vertex[i].lerp(posMap[i], t);
       }
       
     } else if (keyMode == 2) {
       auto& vertex = mesh.vertices();
       auto colors = mesh.colors();
       for (int i = 1; i < vertex.size(); i++) {
-        vertex[i].lerp(rgbMap[i], 0.01);
+        vertex[i].lerp(rgbMap[i], t);
       }
     } else if (keyMode == 3) {
       auto& vertex = mesh.vertices();
       auto colors = mesh.colors();
       for (int i = 1; i < colors.size(); i++) {
-        vertex[i].lerp(hsvMap[i], 0.01);
+        vertex[i].lerp(hsvMap[i], t);
       }
     } else if (keyMode == 4) {
       auto& vertex = mesh.vertices();
       auto colors = mesh.colors();
       for (int i = 1; i < colors.size(); i++) {
-        vertex[i].lerp(cieMap[i], 0.01);
+        vertex[i].lerp(cieMap[i], t);
       }
     } else if (keyMode == 5) {
       auto& vertex = mesh.vertices();
       auto colors = mesh.colors();
       for (int i = 1; i < colors.size(); i++) {
-        vertex[i].lerp(labMap[i], 0.01);
+        vertex[i].lerp(labMap[i], t);
       }
     } else if (keyMode == 6) {
       auto& vertex = mesh.vertices();
       auto colors = mesh.colors();
       for (int i = 1; i < colors.size(); i++) {
-        vertex[i].lerp(hclabMap[i], 0.01);
+        vertex[i].lerp(hclabMap[i], t);
       }
     } else if (keyMode == 7) {
       auto& vertex = mesh.vertices();
       auto colors = mesh.colors();
       for (int i = 1; i < colors.size(); i++) {
-        vertex[i].lerp(luvMap[i], 0.01);
+        vertex[i].lerp(luvMap[i], t);
       }
     }
     else if (keyMode == 8) {
       auto& vertex = mesh.vertices();
       auto colors = mesh.colors();
-      float speed = map(0.01,0.05,0, 1,colors[0].r);
+      float speed = map(t,0.05,0, 1,colors[0].r);
       vertex[0].lerp(vertex.back(), speed);
       for (int i = 1; i < vertex.size(); i++) {
-        float speed = map(0.01,0.05,0, 1,colors[i].r);
+        float speed = map(t,0.05,0, 1,colors[i].r);
         vertex[i].lerp(vertex[i - 1], speed);
       }
     }
