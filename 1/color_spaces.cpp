@@ -146,45 +146,52 @@ public:
 
   bool onKeyDown(const Keyboard &k) {
     t = 0.0;
-    if (k.key() == '1') {
-      // Image mode
-      keyMode = 1;
-    } else if (k.key() == '2') {
-      // RGB Mode
-      keyMode = 2;
-    }  else if (k.key() == '3') {
-      // HSV Mode
-      keyMode = 3;
-    }
-    else if (k.key() == '4') {
-      // CIE Mode
-      keyMode = 4;
-    }
-    else if (k.key() == '5') {
-      // Lab Mode
-      keyMode = 5;
-    }
-    else if (k.key() == '6') {
-      // HCLab Mode
-      keyMode = 6;
-    }
-    else if (k.key() == '7') {
-      // Luv Mode
-      keyMode = 7;
-    }
-    else if (k.key() == '8') {
-      // Loop Animation Mode
-      keyMode = 8;
+    switch (k.key()) {
+      // For printable keys, we just use its character symbol:
+      case '1':
+        // Image mode
+        keyMode = 1;
+        break;
+      case '2' :
+        // RGB Mode
+        keyMode = 2;
+        break; 
+      case '3' :
+        // HSV Mode
+        keyMode = 3;
+        break; 
+      case '4' :
+        // CIE Mode
+        keyMode = 4;
+        break; 
+      case '5' :
+        // Lab Mode
+        keyMode = 5;
+        break; 
+      case '6' :
+        // HCLab Mode
+        keyMode = 6;
+        break; 
+      case '7' :
+        // Luv Mode
+        keyMode = 7;
+        break; 
+      case '8' :
+        // Loop Animation Mode
+        keyMode = 8;
+        break; 
+      default:
+        break;
     }
     return true;
   }
 
   void onAnimate(double dt_ms) {
-    if (t < 1.0) {
-      t += dt_ms;
-    } else {
-      t = 1.0;
-    }
+    // if (t < 1.0) {
+    //   t += dt_ms;
+    // } else {
+    //   t = 1.0;
+    // }
     if (keyMode == 1) {
       auto& vertex = mesh.vertices();
       for (int i = 1; i < vertex.size(); i++) {
@@ -193,38 +200,32 @@ public:
       
     } else if (keyMode == 2) {
       auto& vertex = mesh.vertices();
-      auto colors = mesh.colors();
       for (int i = 1; i < vertex.size(); i++) {
         vertex[i].lerp(rgbMap[i], t);
       }
     } else if (keyMode == 3) {
       auto& vertex = mesh.vertices();
-      auto colors = mesh.colors();
-      for (int i = 1; i < colors.size(); i++) {
+      for (int i = 1; i < vertex.size(); i++) {
         vertex[i].lerp(hsvMap[i], t);
       }
     } else if (keyMode == 4) {
       auto& vertex = mesh.vertices();
-      auto colors = mesh.colors();
-      for (int i = 1; i < colors.size(); i++) {
+      for (int i = 1; i < vertex.size(); i++) {
         vertex[i].lerp(cieMap[i], t);
       }
     } else if (keyMode == 5) {
       auto& vertex = mesh.vertices();
-      auto colors = mesh.colors();
-      for (int i = 1; i < colors.size(); i++) {
+      for (int i = 1; i < vertex.size(); i++) {
         vertex[i].lerp(labMap[i], t);
       }
     } else if (keyMode == 6) {
       auto& vertex = mesh.vertices();
-      auto colors = mesh.colors();
-      for (int i = 1; i < colors.size(); i++) {
+      for (int i = 1; i < vertex.size(); i++) {
         vertex[i].lerp(hclabMap[i], t);
       }
     } else if (keyMode == 7) {
       auto& vertex = mesh.vertices();
-      auto colors = mesh.colors();
-      for (int i = 1; i < colors.size(); i++) {
+      for (int i = 1; i < vertex.size(); i++) {
         vertex[i].lerp(luvMap[i], t);
       }
     }
