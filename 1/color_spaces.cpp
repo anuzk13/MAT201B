@@ -193,41 +193,19 @@ public:
       t = 1.0;
     }
     if (keyMode == 1) {
-      auto& vertex = mesh.vertices();
-      for (int i = 1; i < vertex.size(); i++) {
-        vertex[i].lerp(posMap[i], t);
-      }
-      
+      animateVertex(t, posMap);
     } else if (keyMode == 2) {
-      auto& vertex = mesh.vertices();
-      for (int i = 1; i < vertex.size(); i++) {
-        vertex[i].lerp(rgbMap[i], t);
-      }
+      animateVertex(t, rgbMap);
     } else if (keyMode == 3) {
-      auto& vertex = mesh.vertices();
-      for (int i = 1; i < vertex.size(); i++) {
-        vertex[i].lerp(hsvMap[i], t);
-      }
+      animateVertex(t, hsvMap);
     } else if (keyMode == 4) {
-      auto& vertex = mesh.vertices();
-      for (int i = 1; i < vertex.size(); i++) {
-        vertex[i].lerp(cieMap[i], t);
-      }
+      animateVertex(t, cieMap);
     } else if (keyMode == 5) {
-      auto& vertex = mesh.vertices();
-      for (int i = 1; i < vertex.size(); i++) {
-        vertex[i].lerp(labMap[i], t);
-      }
+      animateVertex(t, labMap);
     } else if (keyMode == 6) {
-      auto& vertex = mesh.vertices();
-      for (int i = 1; i < vertex.size(); i++) {
-        vertex[i].lerp(hclabMap[i], t);
-      }
+      animateVertex(t, hclabMap);
     } else if (keyMode == 7) {
-      auto& vertex = mesh.vertices();
-      for (int i = 1; i < vertex.size(); i++) {
-        vertex[i].lerp(luvMap[i], t);
-      }
+      animateVertex(t, luvMap);
     }
     else if (keyMode == 8) {
       auto& vertex = mesh.vertices();
@@ -243,6 +221,15 @@ public:
 
   float map (float min_d, float max_d, float min_o, float max_o, float x) {
     return (max_d-min_d)*(x - min_o) / (max_o - min_o) + min_d ;
+  }
+
+  void animateVertex(double t, vector<Vec3f> destiny) {
+    if (t <= 1.0) {
+        auto& vertex = mesh.vertices();
+        for (int i = 1; i < vertex.size(); i++) {
+          vertex[i].lerp(destiny[i], t);
+        }
+    }
   }
 
 };
