@@ -187,11 +187,11 @@ public:
   }
 
   void onAnimate(double dt_ms) {
-    // if (t < 1.0) {
-    //   t += dt_ms;
-    // } else {
-    //   t = 1.0;
-    // }
+    if (t < 1.0) {
+      t += dt_ms;
+    } else {
+      t = 1.0;
+    }
     if (keyMode == 1) {
       auto& vertex = mesh.vertices();
       for (int i = 1; i < vertex.size(); i++) {
