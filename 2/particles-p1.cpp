@@ -158,11 +158,11 @@ struct AlloApp : App {
   }
 
   Vec3f gravitationalForce(float m1, float m2, Vec3f p1, Vec3f p2) {
-    Vec3f diff = p1 -p2;
-    float r = min(diff.mag(), maxForce.get());
+    Vec3f diff = p1 - p2;
+    float r = diff.mag();
     Vec3f dir = diff.normalize();
     float forceMag = (G * m1 * m2) / (r * r);
-    return forceMag * dir;
+    return min(forceMag, maxForce.get()) * dir;
   }
 
   void onDraw(Graphics &g) override {
