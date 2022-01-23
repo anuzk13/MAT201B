@@ -104,8 +104,8 @@ struct AlloApp : App {
           Vec3f forceionj = gravitationalForce(mass[i], mass[j], vertex[i], vertex[j]);
           Vec3f forcejoni = gravitationalForce(mass[j], mass[i], vertex[j], vertex[i]);
           // apply force
-          acceleration[i] -= forcejoni / mass[i];
-          acceleration[j] -= forceionj / mass[j];
+          acceleration[i] += forcejoni / mass[i];
+          acceleration[j] += forceionj / mass[j];
         }
       }
     }
