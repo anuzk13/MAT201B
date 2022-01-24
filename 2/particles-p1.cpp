@@ -17,14 +17,14 @@ Vec3f randomVec3f(float scale) {
 string slurp(string fileName);  // forward declaration
 
 struct AlloApp : App {
-  Parameter pointSize{"/pointSize", "", 1.0, "", 0.0, 2.0};
+  Parameter pointSize{"/pointSize", "", 0.025, "", 0.0, 0.05};
   Parameter timeStep{"/timeStep", "", 10 , "", 0.01, 10};
-  Parameter maxForce{"/maxForce", "", 0.1, "", 0.01, 1.0};
+  Parameter maxForce{"/maxForce", "", 1.0 * 1e2, "", 0.01, 1.0 * 1e5};
   Parameter dragFactor{"/dragFactor", "", 0.0, "", 0.0, 1.0};
   // G = 6.67430 x 10-11 m3*kg-1*s-2
-  // too tiny for a parameter?
-  Parameter gravitationalConstant{"/gravitationalConstant", "", 6.67, "", 1, 10};
-  float G = gravitationalConstant * 1e3 / 1e11;
+  // I have only been able to find simulation values that work for a higher value for the G constant
+  float G = 6.67 * 1e3 / 1e11;
+  float currMaxForce = 0;
 
   ShaderProgram pointShader;
 
@@ -42,7 +42,6 @@ struct AlloApp : App {
     gui.add(timeStep);   // add parameter to GUI
     gui.add(maxForce);  // add parameter to GUI
     gui.add(dragFactor);   // add parameter to GUI
-    gui.add(gravitationalConstant);  // add parameter to GUI
   }
 
   void onCreate() override {
@@ -61,54 +60,53 @@ struct AlloApp : App {
     mesh.primitive(Mesh::POINTS);
     // does 1000 work on your system? how many can you make before you get a low
     // frame rate? do you need to use <1000?
-    // for (int _ = 0; _ < 100; _++) {
-    //   mesh.vertex(randomVec3f(5));
-    //   mesh.color(randomColor());
+    for (int _ = 0; _ < 100; _++) {
+      mesh.vertex(randomVec3f(5));
+      mesh.color(randomColor());
 
-    //   // float m = rnd::uniform(3.0, 0.5);
-    //   float m = 3 + rnd::normal() / 2;
-    //   if (m < 0.5) m = 0.5;
-    //   mass.push_back(m);
+      int pown = rnd::uniform(2.0, 5.0);
+      float m = rnd::uniform(1.0, 10.0) * pow(10, pown);
+      // if (m < 0.5) m = 0.5;
+      mass.push_back(m);
 
-    //   // using a simplified volume/size relationship
-    //   mesh.texCoord(pow(m, 1.0f / 3), 0);  // s, t
+      // using a simplified volume/size relationship
+      mesh.texCoord(pow(m, 1.0f / (pown+1)), 0);  // s, t
+      // separate state arrays
+      velocity.push_back(randomVec3f(50.0 * 1e-5));
+      acceleration.push_back(randomVec3f(0));
+    }
 
-    //   // separate state arrays
-    //   velocity.push_back(randomVec3f(0.1));
-    //   acceleration.push_back(randomVec3f(1));
-    // }
+    // // cute double orbit
+    // float initialSpeed = 15.0 * 1e-5;
+    // mesh.vertex(Vec3f(0, 0, 0));
+    // mesh.color(randomColor());
+    // mass.push_back(1000);
+    // mesh.texCoord(pow(0.5, 1.0f / 3), 0);  // s, t
+    // velocity.push_back(Vec3f(-initialSpeed, 0, 0));
+    // acceleration.push_back(Vec3f(0, 0, 0));
 
-    // cute double orbit
-    float initialSpeed = 15.0 * 1e-5;
-    mesh.vertex(Vec3f(0, 0, 0));
-    mesh.color(randomColor());
-    mass.push_back(1000);
-    mesh.texCoord(pow(0.5, 1.0f / 3), 0);  // s, t
-    velocity.push_back(Vec3f(-initialSpeed, 0, 0));
-    acceleration.push_back(Vec3f(0, 0, 0));
+    // mesh.vertex(Vec3f(0, 1 , 0));
+    // mesh.color(randomColor());
+    // mass.push_back(1000);
+    // mesh.texCoord(pow(0.5, 1.0f / 3), 0);  // s, t
+    // velocity.push_back(Vec3f(initialSpeed, 0 , 0));
+    // acceleration.push_back(Vec3f(0, 0, 0));
 
-    mesh.vertex(Vec3f(0, 1 , 0));
-    mesh.color(randomColor());
-    mass.push_back(1000);
-    mesh.texCoord(pow(0.5, 1.0f / 3), 0);  // s, t
-    velocity.push_back(Vec3f(initialSpeed, 0 , 0));
-    acceleration.push_back(Vec3f(0, 0, 0));
+    // // single orbit
+    // initialSpeed = 50.0 * 1e-5;
+    // mesh.vertex(Vec3f(1, 0, 0));
+    // mesh.color(randomColor());
+    // mass.push_back(1000);
+    // mesh.texCoord(pow(0.5, 1.0f / 3), 0);  // s, t
+    // velocity.push_back(Vec3f(0, 0, 0));
+    // acceleration.push_back(Vec3f(0, 0, 0));
 
-    // single orbit
-    initialSpeed = 50.0 * 1e-5;
-    mesh.vertex(Vec3f(1, 0, 0));
-    mesh.color(randomColor());
-    mass.push_back(1000);
-    mesh.texCoord(pow(0.5, 1.0f / 3), 0);  // s, t
-    velocity.push_back(Vec3f(0, 0, 0));
-    acceleration.push_back(Vec3f(0, 0, 0));
-
-    mesh.vertex(Vec3f(1, 1 , 0));
-    mesh.color(randomColor());
-    mass.push_back(100);
-    mesh.texCoord(pow(0.5, 1.0f / 3), 0);  // s, t
-    velocity.push_back(Vec3f(initialSpeed, 0 , 0));
-    acceleration.push_back(Vec3f(0, 0, 0));
+    // mesh.vertex(Vec3f(1, 1 , 0));
+    // mesh.color(randomColor());
+    // mass.push_back(100);
+    // mesh.texCoord(pow(0.5, 1.0f / 3), 0);  // s, t
+    // velocity.push_back(Vec3f(initialSpeed, 0 , 0));
+    // acceleration.push_back(Vec3f(0, 0, 0));
 
 
     nav().pos(0, 0, 10);
@@ -139,6 +137,11 @@ struct AlloApp : App {
           // apply force
           acceleration[i] += forcejoni / mass[i];
           acceleration[j] += forceionj / mass[j];
+
+          float tempForce = max(forceionj.mag(), forcejoni.mag());
+          currMaxForce = max(currMaxForce, tempForce);
+
+          if (i==0 && j==1) cout << currMaxForce << endl;
         }
       }
     }
@@ -200,12 +203,9 @@ struct AlloApp : App {
   }
 
   void onDraw(Graphics &g) override {
-    // update G according to parameter
-    float G = gravitationalConstant / 1e11;
-
     g.clear(0.3);
     g.shader(pointShader);
-    g.shader().uniform("pointSize", 3.0 / 100);
+    g.shader().uniform("pointSize", pointSize);
     g.blending(true);
     g.blendTrans();
     g.depthTesting(true);
