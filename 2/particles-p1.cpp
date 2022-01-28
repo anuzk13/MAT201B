@@ -28,6 +28,15 @@ template <typename T> T sqrt(T &&that) {
 
 const double G = 6.674e-11;    // the actual "big G"
 
+struct Body {
+  double mass;     // kilograms
+  double radius;   // meters
+  Vec3f position; // meters
+  Vec3f velocity; // meters/second
+  Vec3f acceleration; // meters/second * second
+};
+
+
 struct AlloApp : App {
   Parameter pointSize{"/pointSize", "", 0.01, "", 0.01, 0.05};
   Parameter timeStep{"/timeStep", "", 1e3 , "", 0.01, 1e7};
@@ -36,11 +45,7 @@ struct AlloApp : App {
   ShaderProgram pointShader;
 
   //  simulation state
-  vector<Vec3f> position;
-  vector<Vec3f> velocity;
-  vector<Vec3f> acceleration;
-  vector<float> mass;
-  vector<float> radius;
+  vector<Body> bodies;
 
   bool warp_size = true;
   bool warp_distance = true;
@@ -85,19 +90,19 @@ struct AlloApp : App {
     // same amount of force on A (but in the opposite direction!) Use a nested
     // for loop to visit each pair once The time complexity is O(n*n)
     //
-    for (int i = 0; i < position.size(); i++) {
-      for (int j = i+1; j < position.size(); j++) {
+    for (int i = 0; i < bodies.size(); i++) {
+      for (int j = i+1; j < bodies.size(); j++) {
           // calculate force
-          Vec3f forceionj = gravitationalForce(mass[i], mass[j], position[i], position[j]);
-          Vec3f forcejoni = gravitationalForce(mass[j], mass[i], position[j], position[i]);
+          Vec3f forceionj = gravitationalForce(bodies[i].mass, bodies[j].mass, bodies[i].position, bodies[j].position);
+          Vec3f forcejoni = gravitationalForce(bodies[j].mass, bodies[i].mass, bodies[j].position, bodies[i].position);
           // apply force
-          acceleration[i] += forcejoni / mass[i];
-          acceleration[j] += forceionj / mass[j];
+          bodies[i].acceleration += forcejoni / bodies[i].mass;
+          bodies[j].acceleration += forceionj / bodies[j].mass;
       }
     }
     // drag
-    for (int i = 0; i < velocity.size(); i++) {
-      acceleration[i] -= velocity[i] * dragFactor;
+    for (int i = 0; i < bodies.size(); i++) {
+      bodies[i].acceleration -= bodies[i].velocity * dragFactor;
     }
 
     // Vec3f has lots of operations you might use...
@@ -112,18 +117,18 @@ struct AlloApp : App {
 
     // Integration
     //
-    for (int i = 0; i < velocity.size(); i++) {
+    for (int i = 0; i < bodies.size(); i++) {
       // "semi-implicit" Euler integration
-      velocity[i] += acceleration[i] * dt;
-      position[i] += velocity[i] * dt;
+      bodies[i].velocity += bodies[i].acceleration * dt;
+      bodies[i].position += bodies[i].velocity * dt;
 
       // Explicit (or "forward") Euler integration would look like this:
-      // position[i] += velocity[i] * dt;
-      // velocity[i] += acceleration[i] * dt;
+      // bodies[i].position += bodies[i].velocity * dt;
+      // bodies[i].velocity += bodies[i].acceleration * dt;
     }
 
     // clear all accelerations (IMPORTANT!!)
-    for (auto &a : acceleration) a.zero();
+    for (auto &b : bodies) b.acceleration.zero();
   }
 
   bool onKeyDown(const Keyboard &k) override {
@@ -154,33 +159,17 @@ struct AlloApp : App {
     clearParticles();
 
     // Big central object
-    position.push_back(Vec3f(0, 0, 0));
-    mass.push_back(1989100000e21);
-    // separate state arrays
-    velocity.push_back(Vec3f(0,0,0));
-    acceleration.push_back(0);
-    radius.push_back(695508e3);
-    // Body b1 = { "Sun",1989100000e21, 695508e3, Vec3f(0, 0, 0), Vec3f(0,0,0), Vec3f(0,0,0)};
-    // bodies.push_back(b1);
+    Body b1 = {  1989100000e21, 695508e3, Vec3f(0, 0, 0), Vec3f(0,0,0), 0};
+    bodies.push_back(b1);
 
     // // Orbiting object
-    position.push_back(Vec3f(778.3e9, 0, 0));
-    mass.push_back(1898187e21);
-    // separate state arrays
-    velocity.push_back(Vec3f(0,13.1e3,0));
-    acceleration.push_back(0);
-    radius.push_back(69911e3);
-    // Body b2 = { "Jupiter",1898187e21, 69911e3, Vec3f(778.3e9, 0, 0), Vec3f(0,13.1e3,0), Vec3f(0,0,0)};
-    // bodies.push_back(b2);
+    Body b2 = { 1898187e21, 69911e3, Vec3f(778.3e9, 0, 0), Vec3f(0,13.1e3,0), 0};
+    bodies.push_back(b2);
 
   }
 
   void clearParticles() {
-    position.clear();
-    velocity.clear();
-    acceleration.clear();
-    mass.clear();
-    radius.clear();
+    bodies.clear();
   }
 
   Vec3f gravitationalForce(float m1, float m2, Vec3f p1, Vec3f p2) {
@@ -195,17 +184,17 @@ struct AlloApp : App {
   void onDraw(Graphics &g) override {
     Mesh mesh;
     mesh.primitive(Mesh::POINTS);
-    for (int i = 0; i < position.size(); i++) {
-      mesh.color(HSV(wrap(0.1666666 + float(i) / position.size())));
+    for (int i = 0; i < bodies.size(); i++) {
+      mesh.color(HSV(wrap(0.1666666 + float(i) / bodies.size())));
       if (warp_distance)
-        mesh.vertex(sqrt(position[i] / 1e10));
+        mesh.vertex(sqrt(bodies[i].position / 1e10));
       else
-        mesh.vertex(position[i] / 1e10);
+        mesh.vertex(bodies[i].position / 1e10);
 
       if (warp_size)
-        mesh.texCoord(sqrt(radius[i] / 5e4), 0); // s, t
+        mesh.texCoord(sqrt(bodies[i].radius / 5e4), 0); // s, t
       else
-        mesh.texCoord((radius[i] / 5e4), 0); // s, t
+        mesh.texCoord((bodies[i].radius / 5e4), 0); // s, t
     }
     g.clear(0.3);
     g.shader(pointShader);
