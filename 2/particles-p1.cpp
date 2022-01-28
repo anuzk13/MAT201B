@@ -4,6 +4,8 @@
 #include "al/app/al_App.hpp"
 #include "al/app/al_GUIDomain.hpp"
 #include "al/math/al_Random.hpp"
+#include <cmath> // M_PI
+#include "al/math/al_Functions.hpp"
 
 using namespace al;
 
@@ -16,23 +18,32 @@ Vec3f randomVec3f(float scale) {
 }
 string slurp(string fileName);  // forward declaration
 
+template <typename T> T sqrt(T &&that) {
+  return T(that).normalize(sqrt(that.mag()));
+}
+// T is supposed to be a Vec type: Vec3f, Vec3d, Vec
+// This function makes a copy T(that) that points in the same direction
+// as the original, but has a length that is the sqrt of the original
+// length.
+
+const double G = 6.674e-11;    // the actual "big G"
+
 struct AlloApp : App {
-  Parameter pointSize{"/pointSize", "", 0.025, "", 0.0, 0.05};
-  Parameter timeStep{"/timeStep", "", 10 , "", 0.01, 10};
-  Parameter maxForce{"/maxForce", "", 1.0 * 1e2, "", 0.01, 1.0 * 1e5};
+  Parameter pointSize{"/pointSize", "", 0.01, "", 0.01, 0.05};
+  Parameter timeStep{"/timeStep", "", 1e3 , "", 0.01, 1e7};
   Parameter dragFactor{"/dragFactor", "", 0.0, "", 0.0, 1.0};
-  // G = 6.67430 x 10-11 m3*kg-1*s-2
-  // I have only been able to find simulation values that work for a higher value for the G constant
-  float G = 6.67 * 1e3 / 1e11;
-  float currMaxForce = 0;
 
   ShaderProgram pointShader;
 
   //  simulation state
-  Mesh mesh;  // position *is inside the mesh* mesh.vertices() are the positions
+  vector<Vec3f> position;
   vector<Vec3f> velocity;
   vector<Vec3f> acceleration;
   vector<float> mass;
+  vector<float> radius;
+
+  bool warp_size = true;
+  bool warp_distance = true;
 
   void onInit() override {
     // set up GUI
@@ -40,7 +51,6 @@ struct AlloApp : App {
     auto &gui = GUIdomain->newGUI();
     gui.add(pointSize);  // add parameter to GUI
     gui.add(timeStep);   // add parameter to GUI
-    gui.add(maxForce);  // add parameter to GUI
     gui.add(dragFactor);   // add parameter to GUI
   }
 
@@ -57,62 +67,10 @@ struct AlloApp : App {
     // c++11 "lambda" function
     auto randomColor = []() { return HSV(rnd::uniform(), 1.0f, 1.0f); };
 
-    mesh.primitive(Mesh::POINTS);
-    // does 1000 work on your system? how many can you make before you get a low
-    // frame rate? do you need to use <1000?
-    for (int _ = 0; _ < 100; _++) {
-      mesh.vertex(randomVec3f(5));
-      mesh.color(randomColor());
-
-      int pown = rnd::uniform(2.0, 5.0);
-      float m = rnd::uniform(1.0, 10.0) * pow(10, pown);
-      // if (m < 0.5) m = 0.5;
-      mass.push_back(m);
-
-      // using a simplified volume/size relationship
-      mesh.texCoord(pow(m, 1.0f / (pown+1)), 0);  // s, t
-      // separate state arrays
-      velocity.push_back(randomVec3f(50.0 * 1e-5));
-      acceleration.push_back(randomVec3f(0));
-    }
-
-    // // cute double orbit
-    // float initialSpeed = 15.0 * 1e-5;
-    // mesh.vertex(Vec3f(0, 0, 0));
-    // mesh.color(randomColor());
-    // mass.push_back(1000);
-    // mesh.texCoord(pow(0.5, 1.0f / 3), 0);  // s, t
-    // velocity.push_back(Vec3f(-initialSpeed, 0, 0));
-    // acceleration.push_back(Vec3f(0, 0, 0));
-
-    // mesh.vertex(Vec3f(0, 1 , 0));
-    // mesh.color(randomColor());
-    // mass.push_back(1000);
-    // mesh.texCoord(pow(0.5, 1.0f / 3), 0);  // s, t
-    // velocity.push_back(Vec3f(initialSpeed, 0 , 0));
-    // acceleration.push_back(Vec3f(0, 0, 0));
-
-    // // single orbit
-    // initialSpeed = 50.0 * 1e-5;
-    // mesh.vertex(Vec3f(1, 0, 0));
-    // mesh.color(randomColor());
-    // mass.push_back(1000);
-    // mesh.texCoord(pow(0.5, 1.0f / 3), 0);  // s, t
-    // velocity.push_back(Vec3f(0, 0, 0));
-    // acceleration.push_back(Vec3f(0, 0, 0));
-
-    // mesh.vertex(Vec3f(1, 1 , 0));
-    // mesh.color(randomColor());
-    // mass.push_back(100);
-    // mesh.texCoord(pow(0.5, 1.0f / 3), 0);  // s, t
-    // velocity.push_back(Vec3f(initialSpeed, 0 , 0));
-    // acceleration.push_back(Vec3f(0, 0, 0));
-
-
-    nav().pos(0, 0, 10);
+    nav().pos(0, 0, 50);
   }
 
-  bool freeze = false;
+  bool freeze = true;
   void onAnimate(double dt) override {
     if (freeze) return;
 
@@ -127,22 +85,14 @@ struct AlloApp : App {
     // same amount of force on A (but in the opposite direction!) Use a nested
     // for loop to visit each pair once The time complexity is O(n*n)
     //
-    auto& vertex = mesh.vertices();
-    for (int i = 0; i < vertex.size(); i++) {
-      for (int j = 0; j < vertex.size(); j++) {
-        if (i != j) {
+    for (int i = 0; i < position.size(); i++) {
+      for (int j = i+1; j < position.size(); j++) {
           // calculate force
-          Vec3f forceionj = gravitationalForce(mass[i], mass[j], vertex[i], vertex[j]);
-          Vec3f forcejoni = gravitationalForce(mass[j], mass[i], vertex[j], vertex[i]);
+          Vec3f forceionj = gravitationalForce(mass[i], mass[j], position[i], position[j]);
+          Vec3f forcejoni = gravitationalForce(mass[j], mass[i], position[j], position[i]);
           // apply force
           acceleration[i] += forcejoni / mass[i];
           acceleration[j] += forceionj / mass[j];
-
-          float tempForce = max(forceionj.mag(), forcejoni.mag());
-          currMaxForce = max(currMaxForce, tempForce);
-
-          if (i==0 && j==1) cout << currMaxForce << endl;
-        }
       }
     }
     // drag
@@ -162,15 +112,14 @@ struct AlloApp : App {
 
     // Integration
     //
-    vector<Vec3f> &position(mesh.vertices());
     for (int i = 0; i < velocity.size(); i++) {
       // "semi-implicit" Euler integration
-      velocity[i] += acceleration[i] / mass[i] * dt;
+      velocity[i] += acceleration[i] * dt;
       position[i] += velocity[i] * dt;
 
       // Explicit (or "forward") Euler integration would look like this:
       // position[i] += velocity[i] * dt;
-      // velocity[i] += acceleration[i] / mass[i] * dt;
+      // velocity[i] += acceleration[i] * dt;
     }
 
     // clear all accelerations (IMPORTANT!!)
@@ -183,14 +132,55 @@ struct AlloApp : App {
     }
 
     if (k.key() == '1') {
-      // introduce some "random" forces
-      for (int i = 0; i < velocity.size(); i++) {
-        // F = ma
-        acceleration[i] = randomVec3f(1) / mass[i];
-      }
+      // change warp_size
+      warp_size = !warp_size;
+    }
+
+    if (k.key() == '2') {
+      // change warp_size
+      warp_distance = !warp_distance;
+    }
+
+    if (k.key() == '3') {
+      // Orbit demo
+      orbitDemo();
     }
 
     return true;
+  }
+
+  void orbitDemo() {
+    freeze = false;
+    clearParticles();
+
+    // Big central object
+    position.push_back(Vec3f(0, 0, 0));
+    mass.push_back(1989100000e21);
+    // separate state arrays
+    velocity.push_back(Vec3f(0,0,0));
+    acceleration.push_back(0);
+    radius.push_back(695508e3);
+    // Body b1 = { "Sun",1989100000e21, 695508e3, Vec3f(0, 0, 0), Vec3f(0,0,0), Vec3f(0,0,0)};
+    // bodies.push_back(b1);
+
+    // // Orbiting object
+    position.push_back(Vec3f(778.3e9, 0, 0));
+    mass.push_back(1898187e21);
+    // separate state arrays
+    velocity.push_back(Vec3f(0,13.1e3,0));
+    acceleration.push_back(0);
+    radius.push_back(69911e3);
+    // Body b2 = { "Jupiter",1898187e21, 69911e3, Vec3f(778.3e9, 0, 0), Vec3f(0,13.1e3,0), Vec3f(0,0,0)};
+    // bodies.push_back(b2);
+
+  }
+
+  void clearParticles() {
+    position.clear();
+    velocity.clear();
+    acceleration.clear();
+    mass.clear();
+    radius.clear();
   }
 
   Vec3f gravitationalForce(float m1, float m2, Vec3f p1, Vec3f p2) {
@@ -199,10 +189,24 @@ struct AlloApp : App {
     float r = diff.mag();
     Vec3f dir = diff.normalize();
     float forceMag = (G * m1 * m2) / (r * r);
-    return min(forceMag, maxForce.get()) * dir;
+    return forceMag * dir;
   }
 
   void onDraw(Graphics &g) override {
+    Mesh mesh;
+    mesh.primitive(Mesh::POINTS);
+    for (int i = 0; i < position.size(); i++) {
+      mesh.color(HSV(wrap(0.1666666 + float(i) / position.size())));
+      if (warp_distance)
+        mesh.vertex(sqrt(position[i] / 1e10));
+      else
+        mesh.vertex(position[i] / 1e10);
+
+      if (warp_size)
+        mesh.texCoord(sqrt(radius[i] / 5e4), 0); // s, t
+      else
+        mesh.texCoord((radius[i] / 5e4), 0); // s, t
+    }
     g.clear(0.3);
     g.shader(pointShader);
     g.shader().uniform("pointSize", pointSize);
