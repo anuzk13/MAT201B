@@ -40,7 +40,6 @@ struct Body {
 struct AlloApp : App {
   Parameter pointSize{"/pointSize", "", 0.01, "", 0.01, 0.05};
   Parameter timeStep{"/timeStep", "", 1e3 , "", 0.01, 1e7};
-  Parameter dragFactor{"/dragFactor", "", 0.0, "", 0.0, 1.0};
 
   ShaderProgram pointShader;
 
@@ -56,7 +55,6 @@ struct AlloApp : App {
     auto &gui = GUIdomain->newGUI();
     gui.add(pointSize);  // add parameter to GUI
     gui.add(timeStep);   // add parameter to GUI
-    gui.add(dragFactor);   // add parameter to GUI
   }
 
   void onCreate() override {
@@ -99,10 +97,6 @@ struct AlloApp : App {
           bodies[i].acceleration += forcejoni / bodies[i].mass;
           bodies[j].acceleration += forceionj / bodies[j].mass;
       }
-    }
-    // drag
-    for (int i = 0; i < bodies.size(); i++) {
-      bodies[i].acceleration -= bodies[i].velocity * dragFactor;
     }
 
     // Vec3f has lots of operations you might use...
