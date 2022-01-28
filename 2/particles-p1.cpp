@@ -151,6 +151,11 @@ struct AlloApp : App {
       orbitDemo();
     }
 
+    if (k.key() == '4') {
+      // double orbit demo
+      doubleOrbitDemo();
+    }
+
     return true;
   }
 
@@ -164,6 +169,21 @@ struct AlloApp : App {
 
     // // Orbiting object
     Body b2 = { 1898187e21, 69911e3, Vec3f(778.3e9, 0, 0), Vec3f(0,13.1e3,0), 0};
+    bodies.push_back(b2);
+
+  }
+
+  
+  void doubleOrbitDemo() {
+    freeze = false;
+    clearParticles();
+
+    // Big central object
+    Body b1 = { 1898187e21, 69911e3, Vec3f(-778.3e9/4, 0, 0), Vec3f(0,-50e1,0), 0};
+    bodies.push_back(b1);
+
+    // // Orbiting object
+    Body b2 = { 1898187e21, 69911e3, Vec3f(778.3e9/4, 0, 0), Vec3f(0,50e1,0), 0};
     bodies.push_back(b2);
 
   }
