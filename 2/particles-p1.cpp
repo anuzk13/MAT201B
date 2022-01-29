@@ -39,7 +39,7 @@ struct Body {
 
 struct AlloApp : App {
   Parameter pointSize{"/pointSize", "", 0.01, "", 0.01, 0.05};
-  Parameter timeStep{"/timeStep", "", 1e3 , "", 0.01, 1e7};
+  Parameter timeStep{"/timeStep", "", 1e6 , "", 0.01, 1e7};
 
   ShaderProgram pointShader;
 
@@ -70,10 +70,12 @@ struct AlloApp : App {
     // c++11 "lambda" function
     auto randomColor = []() { return HSV(rnd::uniform(), 1.0f, 1.0f); };
 
+    orbitDemo();
+
     nav().pos(0, 0, 50);
   }
 
-  bool freeze = true;
+  bool freeze = false;
   void onAnimate(double dt) override {
     if (freeze) return;
 
@@ -150,6 +152,11 @@ struct AlloApp : App {
       doubleOrbitDemo();
     }
 
+    if (k.key() == '5') {
+      // double orbit demo
+      randomPlanerDemo();
+    }
+
     return true;
   }
 
@@ -180,6 +187,25 @@ struct AlloApp : App {
     Body b2 = { 1898187e21, 69911e3, Vec3f(778.3e9/4, 0, 0), Vec3f(0,50e1,0), 0};
     bodies.push_back(b2);
 
+  }
+
+  void randomPlanerDemo() {
+    clearParticles();
+    for (int i = 0; i < 50; i++) {
+      Body b = randomPlanet();
+      bodies.push_back(b);
+    }
+  }
+
+  Body randomPlanet() {
+    double mass = rnd::uniform(330e21, 1898187e21);
+    // double radius = pow(mass / 5428, 1/3) * 3/4 *1/ M_PI;
+    double radius = rnd::uniform(2439.4e3, 69911e3);
+    Vec3f position = Vec3f(rnd::uniform(57.9e9, 778.3e9), rnd::uniform(57.9e9, 778.3e9), rnd::uniform(57.9e9, 778.3e9));
+    Vec3f velocity = Vec3f(rnd::uniform(-1e2, 1e2), rnd::uniform(-1e2, 1e2), rnd::uniform(-1e2, 1e2));
+    Vec3f acceleration = 0;
+    Body r = { mass, radius, position, velocity, acceleration};
+    return r;
   }
 
   void clearParticles() {
