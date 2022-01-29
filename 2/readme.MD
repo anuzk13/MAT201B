@@ -20,7 +20,7 @@
 
 [Point Analysis](analysis.MD)
 
-### Point 3:
+### Point 4:
 
 - Inspired by the magnetic force on charged particles in a magnetic field I used the cross product instead of the difference as the direction for the gravitarional force and visualized it in the solar system
 
