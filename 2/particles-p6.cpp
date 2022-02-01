@@ -155,11 +155,10 @@ struct AlloApp : App {
       velocity[i] += acceleration[i] * dt;
       position[i] += velocity[i] * dt;
 
-      // prevent particles from escaping
+      // prevent particles from escaping particles get pushed back
       if ((posAvg - position[i]).mag() > 15) {
-        velocity[i] = randomVec3f(0.1);
+        velocity[i] = velocity[i].mag() * (posAvg - position[i]).normalize();
         acceleration[i] = randomVec3f(1);
-        position[i] = posAvg + randomVec3f(1);
       }
 
       // Explicit (or "forward") Euler integration would look like this:
