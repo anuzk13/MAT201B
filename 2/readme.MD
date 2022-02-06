@@ -20,6 +20,15 @@
 
 [Point Analysis](analysis.MD)
 
+### Point 4 alt:
+
+New version of point 4. This version includes a force field that can 'trap' and redirect particles. 
+Particles that fly too far from the center of gravity are re-directed to the center of the screen
+
+- Press 1 to move to the 0,0,0 pos
+
+- Press 2 to move to the center of mass 
+
 ### Point 4:
 
 - Inspired by the magnetic force on charged particles in a magnetic field I used the cross product instead of the difference as the direction for the gravitarional force and visualized it in the solar system
