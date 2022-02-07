@@ -4,6 +4,8 @@
 #include "al/app/al_App.hpp"
 #include "al/math/al_Random.hpp"
 #include "al/graphics/al_Shapes.hpp"
+#include "al/math/al_Functions.hpp"
+#include "al/app/al_GUIDomain.hpp"
 
 using namespace al;
 
@@ -49,10 +51,21 @@ class Boid {
 };
 
 struct MyApp : App {
-  static const int Nb = 10;  // Number of boids
+  Parameter pushRadius{"/pushRadius", "", 0.05, "", 0.01, 0.1};
+  Parameter pushStrength{"/pushStrength", "", 1, "", 0.01, 2};
+
+  static const int Nb = 20;  // Number of boids
   Mesh heads, tails;
   Boid boids[Nb];
   VAOMesh mCube;
+
+  void onInit() override {
+    // set up GUI
+    auto GUIdomain = GUIDomain::enableGUI(defaultWindowDomain());
+    auto &gui = GUIdomain->newGUI();
+    gui.add(pushRadius);  // add parameter to GUI
+    gui.add(pushStrength);  // add parameter to GUI
+  }
 
   void onCreate() override {
     addCube(mCube, false, 1);
@@ -74,8 +87,32 @@ struct MyApp : App {
   }
 
   void onAnimate(double dt) override {
-  
-    // Generate meshes
+
+    // Flock behavior
+    for (int i = 0; i < Nb - 1; ++i) {
+      for (int j = i + 1; j < Nb; ++j) {
+        Vec3f ds = boids[i].location - boids[j].location;
+        float dist = ds.mag();
+
+        // Collision avoidance
+        // exp = e^val
+        // the further it is the less strong is the push
+        // different from daniel shiffman implementation in that he does an average
+        float push = exp(-al::pow2(dist / pushRadius.get())) * pushStrength.get();
+
+        auto pushVector = ds.normalized() * push;
+        boids[i].location += pushVector;
+        boids[j].location -= pushVector;
+      }
+    }
+
+    // Individual behavior
+    for (auto& b : boids) {
+      b.update(dt);
+      b.borders();
+    }
+
+    // Display
     heads.reset();
     heads.primitive(Mesh::POINTS);
 
@@ -83,9 +120,6 @@ struct MyApp : App {
     tails.primitive(Mesh::LINES);
 
     for (int i = 0; i < Nb; ++i) {
-      boids[i].update(dt);
-      boids[i].borders();
-
       heads.vertex(boids[i].location);
       heads.color(HSV(float(i) / Nb * 0.3 + 0.3, 0.7));
 
