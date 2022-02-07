@@ -3,6 +3,7 @@
 
 #include "al/app/al_App.hpp"
 #include "al/math/al_Random.hpp"
+#include "al/graphics/al_Shapes.hpp"
 
 using namespace al;
 
@@ -30,15 +31,35 @@ class Boid {
     acceleration.zero();
   }
 
+  void borders() {
+    if (location.x > 1 || location.x < -1) {
+      location.x = location.x > 0 ? 1 : -1;
+      velocity.x = -velocity.x;
+    }
+    if (location.y > 1 || location.y < -1) {
+      location.y = location.y > 0 ? 1 : -1;
+      velocity.y = -velocity.y;
+    }
+    if (location.z > 1 || location.z < -1) {
+      location.z = location.z > 0 ? 1 : -1;
+      velocity.z = -velocity.z;
+    }
+  }
+
 };
 
 struct MyApp : App {
   static const int Nb = 10;  // Number of boids
   Mesh heads, tails;
   Boid boids[Nb];
+  VAOMesh mCube;
+
   void onCreate() override {
-    resetBoids();
+    addCube(mCube, false, 1);
+    mCube.primitive(Mesh::LINE_STRIP);
+    mCube.update();
     nav().pullBack(10);
+    resetBoids();
   }
 
   // Randomize boid positions/velocities uniformly inside unit disc
@@ -63,6 +84,7 @@ struct MyApp : App {
 
     for (int i = 0; i < Nb; ++i) {
       boids[i].update(dt);
+      boids[i].borders();
 
       heads.vertex(boids[i].location);
       heads.color(HSV(float(i) / Nb * 0.3 + 0.3, 0.7));
@@ -106,11 +128,12 @@ struct MyApp : App {
   }
 
   void onDraw(Graphics& g) override {
-    g.clear(0, 0, 0);
+    g.clear(1, 1, 1);
     g.pointSize(8);
     g.meshColor();
     g.draw(heads);
     g.draw(tails);
+    g.draw(mCube);
   }
 };
 
