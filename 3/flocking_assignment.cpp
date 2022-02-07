@@ -103,6 +103,22 @@ struct MyApp : App {
         auto pushVector = ds.normalized() * push;
         boids[i].location += pushVector;
         boids[j].location -= pushVector;
+
+        // Velocity matching = alignment? = orientation mimicry?
+        // this does not work, why?
+        // float matchRadius = 0.125;
+        // float nearness = exp(-al::pow2(dist / matchRadius));
+        // Vec2f veli = boids[i].velocity;
+        // Vec2f velj = boids[j].velocity;
+
+        // // Take a weighted average of velocities according to nearness
+        // boids[i].velocity = veli * (1 - 0.5 * nearness) + velj * (0.5 * nearness);
+        // boids[j].velocity = velj * (1 - 0.5 * nearness) + veli * (0.5 * nearness);
+
+        float matchRadius = 0.125;
+        float nearness = exp(-al::pow2(dist / matchRadius));
+        boids[i].velocity = Vec3f(boids[i].velocity).lerp(boids[j].velocity, 1 - 0.5 * nearness).normalize() * boids[i].velocity.mag();
+        boids[j].velocity = Vec3f(boids[j].velocity).lerp(boids[i].velocity, 0.5 * nearness).normalize() * boids[j].velocity.mag();
       }
     }
 
