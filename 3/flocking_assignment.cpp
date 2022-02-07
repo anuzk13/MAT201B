@@ -26,9 +26,18 @@ class Boid {
     acceleration += force;
   }
 
+  // Update position based on velocity and delta time
+  Vec3f seek(Vec3f target) {
+    Vec3f desired = location - target;
+    desired.normalize();
+    desired *= maxspeed;
+    Vec3f steer = velocity - desired;
+    return steer;
+  }
+
   void update(float dt) {
     velocity += acceleration * dt;
-    velocity = velocity.mag() > maxforce ? velocity.norm(maxforce):(velocity);
+    velocity = velocity.mag() > maxspeed ? velocity.norm(maxspeed):(velocity);
     location += velocity * dt;
     acceleration.zero();
   }
@@ -51,8 +60,9 @@ class Boid {
 };
 
 struct MyApp : App {
-  Parameter pushRadius{"/pushRadius", "", 0.05, "", 0.01, 0.1};
-  Parameter pushStrength{"/pushStrength", "", 1, "", 0.01, 2};
+  Parameter separationRadius{"/separationRadius", "", 0.05, "", 0.01, 0.1};
+  Parameter separationStrength{"/separationStrength", "", 1, "", 0.01, 2};
+  Parameter alignmentRadius{"/alignmentRadius", "", 0.05, "", 0.01, 0.1};
 
   static const int Nb = 20;  // Number of boids
   Mesh heads, tails;
@@ -63,8 +73,9 @@ struct MyApp : App {
     // set up GUI
     auto GUIdomain = GUIDomain::enableGUI(defaultWindowDomain());
     auto &gui = GUIdomain->newGUI();
-    gui.add(pushRadius);  // add parameter to GUI
-    gui.add(pushStrength);  // add parameter to GUI
+    gui.add(separationRadius);  // add parameter to GUI
+    gui.add(separationStrength);  // add parameter to GUI
+    gui.add(alignmentRadius);  // add parameter to GUI
   }
 
   void onCreate() override {
@@ -98,7 +109,7 @@ struct MyApp : App {
         // exp = e^val
         // the further it is the less strong is the push
         // different from daniel shiffman implementation in that he does an average
-        float push = exp(-al::pow2(dist / pushRadius.get())) * pushStrength.get();
+        float push = exp(-al::pow2(dist / separationRadius.get())) * separationStrength.get();
 
         auto pushVector = ds.normalized() * push;
         boids[i].location += pushVector;
@@ -111,15 +122,34 @@ struct MyApp : App {
         // Vec2f veli = boids[i].velocity;
         // Vec2f velj = boids[j].velocity;
 
-        // // Take a weighted average of velocities according to nearness
+        // Take a weighted average of velocities according to nearness
         // boids[i].velocity = veli * (1 - 0.5 * nearness) + velj * (0.5 * nearness);
         // boids[j].velocity = velj * (1 - 0.5 * nearness) + veli * (0.5 * nearness);
 
-        float matchRadius = 0.125;
-        float nearness = exp(-al::pow2(dist / matchRadius));
-        boids[i].velocity = Vec3f(boids[i].velocity).lerp(boids[j].velocity, 1 - 0.5 * nearness).normalize() * boids[i].velocity.mag();
-        boids[j].velocity = Vec3f(boids[j].velocity).lerp(boids[i].velocity, 0.5 * nearness).normalize() * boids[j].velocity.mag();
+        // float nearness = exp(-al::pow2(dist / alignmentRadius.get()));
+        // boids[i].velocity = Vec3f(boids[i].velocity).lerp(boids[j].velocity, 1 - 0.5 * nearness).normalize() * boids[i].velocity.mag();
+        // boids[j].velocity = Vec3f(boids[j].velocity).lerp(boids[i].velocity, 0.5 * nearness).normalize() * boids[j].velocity.mag();
       }
+    }
+
+    for (int i = 0; i < Nb - 1; ++i) {
+      Vec3f sum = Vec3f(0,0,0);
+      int count = 0;
+      for (int j = 0; j < Nb - 1; ++j) {
+        if (i != j) {
+          Vec3f ds = boids[i].location - boids[j].location;
+          float dist = ds.mag();
+          float cohesionRadius = 0.05;
+          float nearness = exp(-al::pow2(dist / cohesionRadius));
+          sum += boids[j].location * nearness;
+          count +=1;
+        }
+      }
+      if (count > 0) {
+        sum /= count;
+      }
+      Vec3f cohesion = boids[i].seek(sum);
+      boids[i].applyForce(cohesion);
     }
 
     // Individual behavior
