@@ -12,6 +12,8 @@ using namespace al;
 
 double r() { return rnd::uniformS(); }
 
+ static const int Nb = 500;  // Number of boids
+
 // A "boid" (play on bird) is one member of a flock.
 class Boid {
  public:
@@ -20,10 +22,11 @@ class Boid {
   float maxspeed;
 
   void init() {
-    maxspeed = rnd::uniform(0.1,0.5);
+    maxspeed = rnd::uniform(0.01,0.2);
     pose.pos(r(), r(), r());
     pose.quat().set(r(), r(), r(), r()).normalize();
   }
+
 
   void update(float dt) {
     pose.moveF(maxspeed);
@@ -34,11 +37,9 @@ class Boid {
 struct MyApp : App {
   ParameterColor color{"Color"};
   ParameterInt mode{"Mode", "", 1, 1, 4};
-
-  static const int Nb = 20;  // Number of boids
   Boid boids[Nb];
   Mesh mesh;
-
+  float nearRedius = 10.f; 
 
   void onInit() override {
     // set up GUI
@@ -78,6 +79,24 @@ struct MyApp : App {
 
   void onAnimate(double dt) override {
     //
+    for (int i = 0; i < Nb; i++)
+    {
+        Vec3f nearBoidsCenter(0, 0, 0);
+        int count = 0;
+        Boid main = boids[i];
+        for (int j = 0; j < Nb; j++)
+        {
+            if ( i!= j && ( main.pose.pos() - boids[j].pose.pos()).mag() < nearRedius) {
+                nearBoidsCenter += boids[j].pose.pos();
+                count++;
+            }
+        }
+        if (count > 0) {
+            Vec3f centeringPos = nearBoidsCenter/count;
+            main.pose.faceToward(centeringPos,Vec3d(0, 1, 0), 0.03);
+        }
+    }
+    
     for (auto& b : boids) {
         b.update(dt);
     }
