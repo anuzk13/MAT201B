@@ -12,12 +12,31 @@ using namespace al;
 
 double r() { return rnd::uniformS(); }
 
+// A "boid" (play on bird) is one member of a flock.
+class Boid {
+ public:
+  // Each boid has a position and velocity.
+  Nav pose;
+  float maxspeed;
+
+  void init() {
+    maxspeed = rnd::uniform(0.1,0.5);
+    pose.pos(r(), r(), r());
+    pose.quat().set(r(), r(), r(), r()).normalize();
+  }
+
+  void update(float dt) {
+    pose.moveF(maxspeed);
+    pose.step(dt);
+  }
+};
+
 struct MyApp : App {
   ParameterColor color{"Color"};
   ParameterInt mode{"Mode", "", 1, 1, 4};
 
   static const int Nb = 20;  // Number of boids
-  Nav boids[Nb];
+  Boid boids[Nb];
   Mesh mesh;
 
 
@@ -31,8 +50,7 @@ struct MyApp : App {
 
   void resetBoids() {
     for (auto& b : boids) {
-      b.pos(r(), r(), r());
-      b.quat().set(r(), r(), r(), r()).normalize();
+      b.init();
     }
   }
 
@@ -60,6 +78,9 @@ struct MyApp : App {
 
   void onAnimate(double dt) override {
     //
+    for (auto& b : boids) {
+        b.update(dt);
+    }
   }
 
   void onDraw(Graphics& g) override {
@@ -70,21 +91,14 @@ struct MyApp : App {
     // draw a body for each agent
     for (auto& b : boids) {
       g.pushMatrix();  // push()
-      g.translate(b.pos());
-      g.rotate(b.quat());  // rotate using the quat
+      g.translate(b.pose.pos());
+      g.rotate(b.pose.quat());  // rotate using the quat
       g.scale(0.03);
       g.draw(mesh);
       g.popMatrix();  // pop()
     }
   }
 
-  bool onKeyDown(const Keyboard& k) override {
-    return false;
-  }
-
-  void onSound(AudioIOData& io) override {
-    //
-  }
 };
 
 int main() {
