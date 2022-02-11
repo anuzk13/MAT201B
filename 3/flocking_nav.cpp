@@ -34,7 +34,7 @@ class Boid {
   float maxspeed;
 
   void init() {
-    maxspeed = rnd::uniform(0.01,0.2);
+    maxspeed = rnd::uniform(0.01,0.02);
     pose.pos(r(), r(), r());
     pose.quat().set(r(), r(), r(), r()).normalize();
   }
@@ -48,6 +48,9 @@ class Boid {
 
 struct MyApp : App {
   Parameter timeScale{"Time Sacale", 1, 0.01, 10};
+  Parameter nearRedius{"Near Radius", 1, 0.5, 2};
+  Parameter nearStrenght{"Near Steer Strenght", 0.5, 0.0, 1};
+
   Boid boids[Nb];
   Mesh mesh;
 
@@ -56,6 +59,8 @@ struct MyApp : App {
     auto GUIdomain = GUIDomain::enableGUI(defaultWindowDomain());
     auto& gui = GUIdomain->newGUI();
     gui.add(timeScale);  // add parameter to GUI
+    gui.add(nearRedius);  // add parameter to GUI
+    gui.add(nearStrenght);  // add parameter to GUI
   }
 
   void resetBoids() {
@@ -66,7 +71,7 @@ struct MyApp : App {
 
   void onCreate() override {
     // place nav
-    nav().pullBack(4);
+    nav().pullBack(5);
     nav().faceToward(Vec3d(0, 0, 0), Vec3d(0, 1, 0));
 
     // create a prototype agent body
@@ -89,6 +94,27 @@ struct MyApp : App {
   void onAnimate(double dt) override {
     for (auto& b : boids) {
         b.update(dt * timeScale);
+    }
+    //
+    for (int i = 0; i < Nb; i++)
+    {
+        Vec3f nearBoidsCenter(0, 0, 0);
+        int count = 0;
+        Boid main = boids[i];
+        for (int j = 0; j < Nb; j++)
+        {
+            if ( i!= j && ( main.pose.pos() - boids[j].pose.pos()).mag() < nearRedius) {
+                nearBoidsCenter += boids[j].pose.pos();
+                count++;
+            }
+        }
+        if (count > 0) {
+            Vec3f centeringPos = nearBoidsCenter/count;
+            if (i ==0) {
+                cout <<centeringPos << endl;
+            } 
+            main.pose.faceToward(centeringPos,Vec3d(0, 1, 0), nearStrenght);
+        }
     }
   }
 
