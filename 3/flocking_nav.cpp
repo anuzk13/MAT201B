@@ -48,8 +48,7 @@ class Boid {
 };
 
 struct MyApp : App {
-  ParameterColor color{"Color"};
-  ParameterInt mode{"Mode", "", 1, 1, 4};
+  Parameter timeScale{"Time Sacale", 1, 0.01, 10};
   Boid boids[Nb];
   Mesh mesh;
 
@@ -57,8 +56,7 @@ struct MyApp : App {
     // set up GUI
     auto GUIdomain = GUIDomain::enableGUI(defaultWindowDomain());
     auto& gui = GUIdomain->newGUI();
-    gui.add(mode);  // add parameter to GUI
-    gui.add(color);  // add parameter to GUI
+    gui.add(timeScale);  // add parameter to GUI
   }
 
   void resetBoids() {
@@ -91,7 +89,7 @@ struct MyApp : App {
 
   void onAnimate(double dt) override {
     for (auto& b : boids) {
-        b.update(dt);
+        b.update(dt * timeScale);
     }
   }
 
