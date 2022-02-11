@@ -43,7 +43,6 @@ class Boid {
   void update(float dt) {
     pose.moveF(maxspeed);
     pose.step(dt);
-    pose.pos(wrapVec3f(pose.pos(), cubeSize, -cubeSize));
   }
 };
 
@@ -101,7 +100,7 @@ struct MyApp : App {
     // draw a body for each agent
     for (auto& b : boids) {
       g.pushMatrix();  // push()
-      g.translate(b.pose.pos());
+      g.translate(wrapVec3f(b.pose.pos(), cubeSize, -cubeSize));
       g.rotate(b.pose.quat());  // rotate using the quat
       g.scale(0.03);
       g.draw(mesh);
