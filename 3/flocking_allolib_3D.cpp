@@ -12,6 +12,7 @@ Lance Putnam, Oct. 2014
 #include "al/graphics/al_Shapes.hpp"
 #include "al/math/al_Functions.hpp"
 #include "al/math/al_Random.hpp"
+#include "al/graphics/al_Shapes.hpp"
 
 using namespace al;
 
@@ -29,8 +30,13 @@ struct MyApp : public App {
   static const int Nb = 32;  // Number of boids
   Boid boids[Nb];
   Mesh heads, tails;
+  VAOMesh mCube;
 
   void onCreate() {
+
+    addCube(mCube, false, 1);
+    mCube.primitive(Mesh::LINE_STRIP);
+    mCube.update();
 
     nav().pullBack(10);
 
@@ -133,6 +139,9 @@ struct MyApp : public App {
     g.meshColor();
     g.draw(heads);
     g.draw(tails);
+
+    g.color(1);
+    g.draw(mCube);
   }
 
   bool onKeyDown(const Keyboard& k) {
