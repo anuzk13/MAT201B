@@ -194,6 +194,7 @@ struct MyApp : App {
       g.popMatrix();  // pop()
     }
 
+    g.color(0);
     g.draw(mCube);
   }
 
