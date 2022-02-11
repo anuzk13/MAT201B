@@ -132,6 +132,9 @@ struct MyApp : App {
         Vec3f separationCenter(0, 0, 0);
         int separationCount = 0;
         Boid & main = boids[i];
+        // randomly skip moving one as long as is not the special one
+        if (rnd::uniformS() < -0.2 && !main.isCenter)
+            continue; 
         for (int j = 0; j < Nb; j++)
         {
             float distance = (main.pose.pos() - boids[j].pose.pos()).mag();
