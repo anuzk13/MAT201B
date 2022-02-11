@@ -4,15 +4,27 @@
 // minimal app, ready for adapting..
 //
 
+#include <cassert>
+#include <cstdint>
+#include <iostream>
+#include <vector>
+
 #include "al/app/al_App.hpp"
 #include "al/app/al_GUIDomain.hpp"
 #include "al/math/al_Random.hpp"
+#include "al/math/al_Functions.hpp"
 
 using namespace al;
+using namespace std;
 
 double r() { return rnd::uniformS(); }
 
- static const int Nb = 500;  // Number of boids
+Vec3f wrapVec3f(Vec3f val, float hi, float lo) {
+  return Vec3f(wrap(val.x, hi, lo), wrap(val.y, hi, lo), wrap(val.z, hi, lo));
+}
+
+static const int Nb = 500;  // Number of boids
+static const int cubeSize = 3;  // Number of boids
 
 // A "boid" (play on bird) is one member of a flock.
 class Boid {
@@ -31,6 +43,7 @@ class Boid {
   void update(float dt) {
     pose.moveF(maxspeed);
     pose.step(dt);
+    pose.pos(wrapVec3f(pose.pos(), cubeSize, -cubeSize));
   }
 };
 
@@ -39,7 +52,6 @@ struct MyApp : App {
   ParameterInt mode{"Mode", "", 1, 1, 4};
   Boid boids[Nb];
   Mesh mesh;
-  float nearRedius = 10.f; 
 
   void onInit() override {
     // set up GUI
@@ -57,7 +69,7 @@ struct MyApp : App {
 
   void onCreate() override {
     // place nav
-    nav().pos(0.5, 0.7, 5);
+    nav().pullBack(4);
     nav().faceToward(Vec3d(0, 0, 0), Vec3d(0, 1, 0));
 
     // create a prototype agent body
@@ -78,25 +90,6 @@ struct MyApp : App {
   }
 
   void onAnimate(double dt) override {
-    //
-    for (int i = 0; i < Nb; i++)
-    {
-        Vec3f nearBoidsCenter(0, 0, 0);
-        int count = 0;
-        Boid main = boids[i];
-        for (int j = 0; j < Nb; j++)
-        {
-            if ( i!= j && ( main.pose.pos() - boids[j].pose.pos()).mag() < nearRedius) {
-                nearBoidsCenter += boids[j].pose.pos();
-                count++;
-            }
-        }
-        if (count > 0) {
-            Vec3f centeringPos = nearBoidsCenter/count;
-            main.pose.faceToward(centeringPos,Vec3d(0, 1, 0), 0.03);
-        }
-    }
-    
     for (auto& b : boids) {
         b.update(dt);
     }
