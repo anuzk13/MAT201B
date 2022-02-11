@@ -17,7 +17,7 @@
 using namespace al;
 using namespace std;
 
-double r() { return rnd::uniformS(); }
+double r(float scale = 1) { return rnd::uniformS(scale); }
 
 Vec3f wrapVec3f(Vec3f val, float hi, float lo) {
   return Vec3f(wrap(val.x, hi, lo), wrap(val.y, hi, lo), wrap(val.z, hi, lo));
@@ -32,10 +32,16 @@ class Boid {
   // Each boid has a position and velocity.
   Nav pose;
   float maxspeed;
+  bool isCenter;
+  bool isTooClose;
+  bool isNeighbour;
 
   void init() {
+    isCenter = false;
+    isTooClose = false;
+    isNeighbour = false;
     maxspeed = rnd::uniform(0.01,0.2);
-    pose.pos(r(), r(), r());
+    pose.pos(r(cubeSize), r(cubeSize), r(cubeSize));
     pose.quat().set(r(), r(), r(), r()).normalize();
   }
 
@@ -48,10 +54,11 @@ class Boid {
 
 struct MyApp : App {
   Parameter timeScale{"Time Sacale", 1, 0.01, 10};
-  Parameter cohesionStrenght{"Cohesion Strenght", 0.5, 0.0, 1};
-  Parameter separationRadius{"Separation Radius", 1, 0.5, 2};
-  Parameter separationStrenght{"Separation Strenght", 0.3, 0.0, 1};
-  Parameter alignmentStrenght{"Alignment Strenght", 0.5, 0.0, 1};
+  Parameter cohesionStrenght{"Cohesion Strenght", 0.01, 0.0, 1};
+  Parameter separationStrenght{"Separation Strenght", 0.01, 0.0, 1};
+  Parameter alignmentStrenght{"Alignment Strenght", 0.03, 0.0, 1};
+  Parameter cohesionRadius{"Cohesion Radius", 0.5, 0.05, 3};
+  ParameterInt index{"Index", "", 0, 0, Nb};
 
   Boid boids[Nb];
   Mesh mesh;
@@ -62,8 +69,9 @@ struct MyApp : App {
     auto& gui = GUIdomain->newGUI();
     gui.add(timeScale);  // add parameter to GUI
     gui.add(cohesionStrenght);  // add parameter to GUI
-    gui.add(separationRadius);  // add parameter to GUI
+    gui.add(cohesionRadius);  // add parameter to GUI
     gui.add(separationStrenght);  // add parameter to GUI
+    gui.add(index);  // add parameter to GUI
   }
 
   void resetBoids() {
@@ -95,9 +103,20 @@ struct MyApp : App {
   }
 
   void onAnimate(double dt) override {
+
     for (auto& b : boids) {
-        b.update(dt * timeScale);
+       b.isCenter = false;
+       b.isNeighbour = false;
+       b.isTooClose = false;
+       float distance = (boids[index].pose.pos() - b.pose.pos()).mag();
+       if (distance < cohesionRadius && distance > 0.05) {
+           b.isNeighbour = true;
+       } else if (distance < 0.02) {
+           b.isTooClose = true;
+       }
     }
+    boids[index].isCenter = true;
+
     //
     for (int i = 0; i < Nb; i++)
     {
@@ -106,18 +125,18 @@ struct MyApp : App {
         int cohesionCount = 0;
         Vec3f separationCenter(0, 0, 0);
         int separationCount = 0;
-        Boid main = boids[i];
+        Boid & main = boids[i];
         for (int j = 0; j < Nb; j++)
         {
             float distance = (main.pose.pos() - boids[j].pose.pos()).mag();
-            if ( i!= j && distance > separationRadius + 0.2 && distance < separationRadius + 1.2) {
+            if ( i!= j && distance < cohesionRadius && distance > 0.05) {
                 cohesionCenter += boids[j].pose.pos();
                 cohesionCount++;
                 // but ! this is in the agent's frame of reference
                 alignmentCenter += boids[j].pose.pos() + boids[j].pose.quat().rotate(Vec3d(0, 0, -1));
 
             }
-            if (i!= j && distance < separationRadius) {
+            if (i!= j && distance < 0.02) {
                 separationCenter += boids[j].pose.pos();
                 separationCount ++;
             }
@@ -133,6 +152,10 @@ struct MyApp : App {
             main.pose.nudgeToward(centeringPos, separationStrenght);
         }
     }
+
+    for (auto& b : boids) {
+        b.update(dt * timeScale);
+    }
   }
 
   void onDraw(Graphics& g) override {
@@ -142,6 +165,18 @@ struct MyApp : App {
 
     // draw a body for each agent
     for (auto& b : boids) {
+      if (b.isCenter) {
+        // yellow
+        g.color(HSV(0.166666, 1, 1));
+      } else if (b.isNeighbour) {
+        // red
+        g.color(HSV(0, 1, 1));
+      } else if (b.isTooClose) {
+        // green
+        g.color(HSV(0.3, 1, 1));
+      } else {
+        g.meshColor();
+      }
       g.pushMatrix();  // push()
       g.translate(wrapVec3f(b.pose.pos(), cubeSize, -cubeSize));
       g.rotate(b.pose.quat());  // rotate using the quat
