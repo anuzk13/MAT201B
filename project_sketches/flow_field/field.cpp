@@ -6,13 +6,10 @@
 
 using namespace al;
 
-#include <fstream>
-#include <vector>
-using namespace std;
 
 typedef struct {
   int id;
-  double y,x,dy,dx,dy_norm,dx_norm;
+  double y,x,dy,dx,dy_norm,dx_norm,norm,norm_norm;
 } FlowPoint;
 
 
@@ -30,24 +27,24 @@ struct AlloApp : App {
     reader.addType(CSVReader::REAL);
     reader.addType(CSVReader::REAL);
     reader.addType(CSVReader::REAL);
-    reader.readFile("data/flow_map_data.csv");
+    reader.addType(CSVReader::REAL);
+    reader.addType(CSVReader::REAL);
+    reader.readFile("data/data_smooth_2.csv");
 
     rows = reader.copyToStruct<FlowPoint>();
 
     fieldMesh = Mesh(Mesh::LINES);
-    float scale = 0.05;
+    float scale = 1;
     for (int i = 0; i < rows.size(); ++i) {
         
         float originX = map(-1.5f,1.5f,0,1201,rows[i].x);
         float originY = map(1.5f,-1.5f,0,1783,rows[i].y);
         Vec3f originPoint = Vec3f(originX, originY, 0.f);
-        float endX = map(-1.5f,1.5f,0,1201,rows[i].x + rows[i].dx * scale);
-        float endY = map(1.5f,-1.5f,0,1783,rows[i].y + rows[i].dy * scale);
+        float endX = map(-1.5f,1.5f,0,1201,rows[i].x + rows[i].dx_norm * scale);
+        float endY = map(1.5f,-1.5f,0,1783,rows[i].y + rows[i].dy_norm * scale);
         Vec3f endPoint = Vec3f(endX, endY,  0.f);
 
-        // this wont do anything because they are already normalized, use the og dx and dy...wait I am
-        float intensity = map(0,1,0,scale,(originPoint-endPoint).mag());
-        Color color = Color(intensity,intensity,intensity);
+        Color color = HSV(rows[i].norm_norm, 1.0f, 1.0f); 
 
         // here we're rendering a point based on the vector field
         fieldMesh.vertex(originPoint);
