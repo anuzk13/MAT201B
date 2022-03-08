@@ -12,18 +12,16 @@ using namespace std;
 
 struct MyApp : App {
 // outside is 422 inside is 1000 each
-  std::vector<std::vector<float>> data;
+  float data[422][1000];
 
   void onCreate() override {
     CSVReader reader;
     reader.addType(CSVReader::REAL);
     reader.readFile("data/Y_voltage_force_flatten_transpose.csv");
-    float data[422][1000];
     std::vector<double> column0 = reader.getColumn(0);
     for (int i = 0; i < 422; i++) {
-        auto v = data[i];
         for (int j = 0; j < 1000; j++) {
-            v[j] = column0[j+i*1000];
+            data[i][j] = column0[j+i*1000];
         }
     }
   }
@@ -40,10 +38,10 @@ struct MyApp : App {
 
   bool onKeyDown(const Keyboard& k) override {
     //
+    cout<< "the array matrix is:"<<data[0][20] <<endl;
     for (int i = 0; i < 422; i++) {
-        auto v = data[i];
         for (int j = 0; j < 1000; j++) {
-            cout<< "the array matrix is:"<< v[j] <<endl;
+            cout<< "the array matrix is:"<<data[i][j] <<endl;
         }
     }
     return false;
