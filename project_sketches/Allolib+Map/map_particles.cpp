@@ -20,17 +20,10 @@ smooth.  This is because interpolation is done on the GPU.
 using namespace al;
 using namespace std;
 
-
-// struct FlowField {
-//     vector<Vec2f> vectors; // meters/second
-//     int resX;
-//     int resY;
-// };
-
 class MyApp : public App {
 public:
-  // FlowField field;
-  Mesh mesh;
+  vector<Vec2f> forceVectors; // meters/second
+  VAOMesh mesh;
   vector<Vec3f> velocity;
   vector<Vec3f> acceleration;
 
@@ -91,24 +84,12 @@ public:
         acceleration.push_back(0);
       }
 
-      // generateFieldVector();
     }
     // Generate the geometry onto which to display the texture
     mesh.primitive(Mesh::POINTS);
     nav().pullBack(4);
 
   }
-
-  // Takes too long with the size of the image
-  // void generateFieldVector() {
-  //   field = {vector<Vec2f>(), imgWidth , imgHeight};
-  //   for (int j = 0; j < field.resY; ++j) {
-  //     for (int i = 0; i < field.resX; ++i) {
-  //       Vec2f vect = Vec2f(rnd::uniform(), rnd::uniform());
-  //       // field.vectors.push_back(vect);
-  //     }
-  //   }
-  // }
 
   void onDraw(Graphics &g) {
     //color of bakcgrund
@@ -150,9 +131,11 @@ public:
 
   void onAnimate(double dt_ms) {
     auto& vertex = mesh.vertices();
+    vertex[0].lerp(vertex[vertex.size()-1], 0.1);
     for (int i = 1; i < vertex.size(); i++) {
-      vertex[i].lerp(randomVec3f(1), 0.1);
+      vertex[i].lerp(vertex[i-1], 0.1);
     }
+    mesh.update();
   }
 
   float map (float min_d, float max_d, float min_o, float max_o, float x) {
