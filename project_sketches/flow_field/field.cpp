@@ -1,4 +1,4 @@
-// Karl Yerkes
+// Flow field visualization
 // 2022-01-20
 
 #include "al/app/al_App.hpp"
