@@ -37,7 +37,10 @@ public:
   int imgWidth, imgHeight;
   int fieldWidth = 1201;
   int fieldHeight = 1783;
-  float maxSpeedVF = 5.0;
+  float maxSpeedVF = 0.01;
+
+  // image size
+  // 1201 x 1782
 
   void onInit() override {
     //  
@@ -119,6 +122,16 @@ public:
     mesh.primitive(Mesh::POINTS);
     nav().pullBack(4);
 
+    auto& vertex = mesh.vertices();
+    for (int i = 0; i < vertex.size(); i++) {
+      if (abs(vertex[i].x) <= 1.0f &&  abs(vertex[i].y) <= 1.0f) {
+        Vec3f steer = getFieldVector(vertex[i]) * maxSpeedVF - velocity[i];
+        // This line causes the program to crash but I am not sure why
+        // acceleration[i] += steer;
+      }
+    }
+
+
   }
 
   void onDraw(Graphics &g) {
@@ -149,14 +162,11 @@ public:
     for (int i = 0; i < vertex.size(); i++) {
       if (abs(vertex[i].x) <= 1.0f &&  abs(vertex[i].y) <= 1.0f) {
         Vec3f steer = getFieldVector(vertex[i]) * maxSpeedVF - velocity[i];
+        Vec3f steer2 = getOriginFieldVector(i) * maxSpeedVF - velocity[i];
         // This line causes the program to crash but I am not sure why
-        // acceleration[i] += steer;
+        acceleration[i] += steer2;
       }
     }
-    // vertex[0].lerp(vertex[vertex.size()-1], 0.1);
-    // for (int i = 1; i < vertex.size(); i++) {
-    //   vertex[i].lerp(vertex[i-1], 0.1);
-    // }
     for (int i = 0; i < velocity.size(); i++) {
       // "semi-implicit" Euler integration
       velocity[i] += acceleration[i] * dt_ms;
@@ -166,6 +176,11 @@ public:
     // clear all accelerations (IMPORTANT!!)
     for (auto &a : acceleration) a.zero();
     mesh.update();
+
+    // vertex[0].lerp(vertex[vertex.size()-1], 0.1);
+    // for (int i = 1; i < vertex.size(); i++) {
+    //   vertex[i].lerp(vertex[i-1], 0.1);
+    // }
   }
 
   float map (float min_d, float max_d, float min_o, float max_o, float x) {
@@ -177,6 +192,10 @@ public:
     float x_index = map(0, fieldWidth -1, -1.f, 1.f, particlePos.x);
     float y_index = map(fieldHeight -1 , 0, -1.f, 1.f, particlePos.y);
     return victimsForces[floor(y_index) * fieldHeight + floor(x_index)];
+  }
+
+  Vec3f getOriginFieldVector(int index) {
+    return victimsForces[index];
   }
 
 };
