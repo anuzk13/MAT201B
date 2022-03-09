@@ -13,6 +13,7 @@ smooth.  This is because interpolation is done on the GPU.
 #include "al/graphics/al_Image.hpp"
 #include "al/math/al_Random.hpp"
 #include "al/io/al_CSVReader.hpp"
+#include "al/app/al_GUIDomain.hpp"
 
 using namespace al;
 using namespace std;
@@ -24,6 +25,10 @@ typedef struct {
 
 class MyApp : public App {
 public:
+
+  Parameter timeStep{"/timeStep", "", 0.1, 0.01, 0.6};
+  Parameter maxSpeedVF{"/maxSpeedVF", "", 0.01, 0.1, 0.01};
+  ParameterBool showField{"/showField", "", 0.0};
 
   CSVReader reader;
   std::vector<FlowPoint> rows;
@@ -37,12 +42,17 @@ public:
   int imgWidth, imgHeight;
   int fieldWidth = 1201;
   int fieldHeight = 1783;
-  float maxSpeedVF = 0.01;
 
   // image size
   // 1201 x 1782
 
   void onInit() override {
+
+    auto GUIdomain = GUIDomain::enableGUI(defaultWindowDomain());
+    auto &gui = GUIdomain->newGUI();
+    gui.add(timeStep);   // add parameter to GUI
+    gui.add(maxSpeedVF);
+    gui.add(showField);
     //  
     reader.addType(CSVReader::INT64);
     reader.addType(CSVReader::REAL);
@@ -121,17 +131,6 @@ public:
     // Generate the geometry onto which to display the texture
     mesh.primitive(Mesh::POINTS);
     nav().pullBack(4);
-
-    auto& vertex = mesh.vertices();
-    for (int i = 0; i < vertex.size(); i++) {
-      if (abs(vertex[i].x) <= 1.0f &&  abs(vertex[i].y) <= 1.0f) {
-        Vec3f steer = getFieldVector(vertex[i]) * maxSpeedVF - velocity[i];
-        // This line causes the program to crash but I am not sure why
-        // acceleration[i] += steer;
-      }
-    }
-
-
   }
 
   void onDraw(Graphics &g) {
@@ -147,7 +146,9 @@ public:
 
     g.meshColor();
 
-    g.draw(fieldMesh);
+    if (showField.get() == 1.0f) {
+      g.draw(fieldMesh);
+    }
   
   }
 
@@ -156,6 +157,8 @@ public:
   }
 
   void onAnimate(double dt_ms) {
+
+    double dt = timeStep;
     auto& vertex = mesh.vertices();
 
     // vector field
@@ -169,8 +172,8 @@ public:
     }
     for (int i = 0; i < velocity.size(); i++) {
       // "semi-implicit" Euler integration
-      velocity[i] += acceleration[i] * dt_ms;
-      vertex[i] += velocity[i] * dt_ms;
+      velocity[i] += acceleration[i] * dt;
+      vertex[i] += velocity[i] * dt;
     }
 
     // clear all accelerations (IMPORTANT!!)
