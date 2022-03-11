@@ -17,12 +17,26 @@ smooth.  This is because interpolation is done on the GPU.
 using namespace al;
 using namespace std;
 
+// typedef struct {
+//   int id;
+//   double x,y,dx_norm,dy_norm;
+// } FlowPoint;
+
+typedef struct {
+  double y,x,dy,dx,dy_norm,dx_norm,norm,norm_norm;
+} FlowPoint;
+
 class MyApp : public App {
 public:
 
   float timeStep = 0.1;
   float maxSpeedVF = 0.01;
   float showField = 0.0;
+
+  CSVReader reader;
+  std::vector<FlowPoint> rows;
+  Mesh fieldMesh;
+  vector<Vec3f> victimsForces;
 
   VAOMesh mesh;
   vector<Vec3f> velocity;
@@ -35,11 +49,44 @@ public:
 
   void onInit() override {
 
+    reader.addType(CSVReader::REAL);
+    reader.addType(CSVReader::REAL);
+    reader.addType(CSVReader::REAL);
+    reader.addType(CSVReader::REAL);
+    reader.addType(CSVReader::REAL);
+    reader.addType(CSVReader::REAL);
+    reader.addType(CSVReader::REAL);
+    reader.addType(CSVReader::REAL);
+    reader.readFile("data/victims_data_sm_2.csv");
+
+    rows = reader.copyToStruct<FlowPoint>();
+
+
+    fieldMesh = Mesh(Mesh::LINES);
+    float scale = 1;
+    for (int i = 0; i < rows.size(); ++i) {
+        
+        float originX = map(-1.f,1.f,0,fieldWidth,rows[i].x);
+        float originY = map(1.f,-1.f,0,fieldHeight,rows[i].y);
+        Vec3f originPoint = Vec3f(originX, originY, 0.f);
+        float endX = map(-1.f,1.f,0,fieldWidth,rows[i].x + rows[i].dx_norm * scale);
+        float endY = map(1.f,-1.f,0,fieldHeight,rows[i].y + rows[i].dy_norm * scale);
+        Vec3f endPoint = Vec3f(endX, endY,  0.f);
+
+        Color color = HSV(rows[i].norm_norm, 1.0f, 1.0f);
+        // Color color = HSV(0.0f, 1.0f, 1.0f); 
+
+        // here we're rendering a point based on the vector field
+        fieldMesh.vertex(originPoint);
+        fieldMesh.color(color);
+        fieldMesh.vertex(endPoint);
+        fieldMesh.color(color);
+        victimsForces.push_back((endPoint - originPoint).normalize());
+    }
   }
 
   void onCreate() {
-    // Load a .jpg file
-    // const char *mapImage = "./data/displacement.png";
+
     const char *mapImage = "./data/displacement_sm.png";
 
     auto mapData = Image(mapImage);
@@ -91,10 +138,12 @@ public:
     // show color of the vertex
     g.meshColor();
      // draw the mesh
-    g.draw(mesh);
+    // g.draw(mesh);
     // g.draw(wire);
 
     g.meshColor();
+
+    g.draw(fieldMesh);
   
   }
 
@@ -107,6 +156,15 @@ public:
     double dt = timeStep;
     auto& vertex = mesh.vertices();
 
+    // vector field
+
+    for (int i = 0; i < vertex.size(); i++) {
+      if (abs(vertex[i].x) <= 1.0f &&  abs(vertex[i].y) <= 1.0f) {
+        Vec3f steer = getFieldVector(vertex[i]) * maxSpeedVF - velocity[i];
+        // This line causes the program to crash but I am not sure why
+        // acceleration[i] += steer;
+      }
+    }
     for (int i = 0; i < velocity.size(); i++) {
       // "semi-implicit" Euler integration
       velocity[i] += acceleration[i] * dt;
@@ -123,7 +181,19 @@ public:
     return (max_d-min_d)*(x - min_o) / (max_o - min_o) + min_d ;
   }
 
+   // particle pos is assumed to be given in the screen space coords
+  Vec3f getFieldVector(Vec2f particlePos) {
+    float x_index = map(0, fieldWidth -1, -1.f, 1.f, particlePos.x);
+    float y_index = map(fieldHeight -1 , 0, -1.f, 1.f, particlePos.y);
+    return victimsForces[floor(y_index) * fieldHeight + floor(x_index)];
+  }
+
+  Vec3f getOriginFieldVector(int index) {
+    return victimsForces[index];
+  }
+
 };
+
 
 int main() {
   MyApp app;
