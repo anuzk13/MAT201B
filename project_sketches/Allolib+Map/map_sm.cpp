@@ -17,14 +17,14 @@ smooth.  This is because interpolation is done on the GPU.
 using namespace al;
 using namespace std;
 
-// typedef struct {
-//   int id;
-//   double x,y,dx_norm,dy_norm;
-// } FlowPoint;
-
 typedef struct {
-  double y,x,dy,dx,dy_norm,dx_norm,norm,norm_norm;
+  int id;
+  double x,y,dx_norm,dy_norm;
 } FlowPoint;
+
+// typedef struct {
+//   double y,x,dy,dx,dy_norm,dx_norm,norm,norm_norm;
+// } FlowPoint;
 
 class MyApp : public App {
 public:
@@ -33,7 +33,6 @@ public:
   float maxSpeedVF = 0.01;
   float showField = 0.0;
 
-  CSVReader reader;
   std::vector<FlowPoint> rows;
   Mesh fieldMesh;
   vector<Vec3f> victimsForces;
@@ -44,37 +43,42 @@ public:
 
   int imgWidth, imgHeight;
 
-  int fieldWidth = 400;
-  int fieldHeight = 300;
+  int fieldWidth = 299;
+  int fieldHeight = 399;
 
   void onInit() override {
+    {
 
-    reader.addType(CSVReader::REAL);
-    reader.addType(CSVReader::REAL);
-    reader.addType(CSVReader::REAL);
-    reader.addType(CSVReader::REAL);
-    reader.addType(CSVReader::REAL);
-    reader.addType(CSVReader::REAL);
-    reader.addType(CSVReader::REAL);
-    reader.addType(CSVReader::REAL);
-    reader.readFile("data/victims_data_sm_2.csv");
+        CSVReader reader;
+        reader.addType(CSVReader::REAL);
+        reader.addType(CSVReader::REAL);
+        reader.addType(CSVReader::REAL);
+        reader.addType(CSVReader::REAL);
+        // reader.addType(CSVReader::REAL);
+        // reader.addType(CSVReader::REAL);
+        // reader.addType(CSVReader::REAL);
+        // reader.addType(CSVReader::REAL);
+        reader.readFile("data/victims_data_sm_2.csv");
 
-    rows = reader.copyToStruct<FlowPoint>();
+        rows = reader.copyToStruct<FlowPoint>();  
+    }
+  }
 
+  void onCreate() {
 
     fieldMesh = Mesh(Mesh::LINES);
     float scale = 1;
     for (int i = 0; i < rows.size(); ++i) {
         
         float originX = map(-1.f,1.f,0,fieldWidth,rows[i].x);
-        float originY = map(1.f,-1.f,0,fieldHeight,rows[i].y);
+        float originY = map(1.f,-1.f,0,fieldWidth,rows[i].y);
         Vec3f originPoint = Vec3f(originX, originY, 0.f);
         float endX = map(-1.f,1.f,0,fieldWidth,rows[i].x + rows[i].dx_norm * scale);
-        float endY = map(1.f,-1.f,0,fieldHeight,rows[i].y + rows[i].dy_norm * scale);
+        float endY = map(1.f,-1.f,0,fieldWidth,rows[i].y + rows[i].dy_norm * scale);
         Vec3f endPoint = Vec3f(endX, endY,  0.f);
 
-        Color color = HSV(rows[i].norm_norm, 1.0f, 1.0f);
-        // Color color = HSV(0.0f, 1.0f, 1.0f); 
+        // Color color = HSV(rows[i].norm_norm, 1.0f, 1.0f);
+        Color color = HSV(0.0f, 1.0f, 1.0f); 
 
         // here we're rendering a point based on the vector field
         fieldMesh.vertex(originPoint);
@@ -83,9 +87,6 @@ public:
         fieldMesh.color(color);
         victimsForces.push_back((endPoint - originPoint).normalize());
     }
-  }
-
-  void onCreate() {
 
     const char *mapImage = "./data/displacement_sm.png";
 
@@ -107,7 +108,7 @@ public:
         auto pixel = mapData.at(i, j);
          // remap from 0, width to -1,1
         float x = map(-1.f,1.f,0,imgWidth,(float)i);
-        float y = map(1.f,-1.f,0,imgHeight,(float)j);
+        float y = map(1.f,-1.f,0,imgWidth,(float)j);
          // remap from 0, 255 to 0,1
         float r = map(0,1,0,255,(float)pixel.r);
         float g = map(0,1,0,255,(float)pixel.g);
@@ -138,8 +139,7 @@ public:
     // show color of the vertex
     g.meshColor();
      // draw the mesh
-    // g.draw(mesh);
-    // g.draw(wire);
+    g.draw(mesh);
 
     g.meshColor();
 
@@ -162,8 +162,11 @@ public:
       if (abs(vertex[i].x) <= 1.0f &&  abs(vertex[i].y) <= 1.0f) {
         Vec3f steer = getFieldVector(vertex[i]) * maxSpeedVF - velocity[i];
         // This line causes the program to crash but I am not sure why
-        // acceleration[i] += steer;
+        acceleration[i] += steer;
       }
+      // crashes on 78720
+      cout << "here" << i << endl;
+      
     }
     for (int i = 0; i < velocity.size(); i++) {
       // "semi-implicit" Euler integration
@@ -177,6 +180,8 @@ public:
 
   }
 
+  // mind_d max_d min max destination
+  // min_o max_o 
   float map (float min_d, float max_d, float min_o, float max_o, float x) {
     return (max_d-min_d)*(x - min_o) / (max_o - min_o) + min_d ;
   }
