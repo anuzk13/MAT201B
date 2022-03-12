@@ -17,14 +17,14 @@ smooth.  This is because interpolation is done on the GPU.
 using namespace al;
 using namespace std;
 
-typedef struct {
-  int id;
-  double x,y,dx_norm,dy_norm;
-} FlowPoint;
-
 // typedef struct {
-//   double y,x,dy,dx,dy_norm,dx_norm,norm,norm_norm;
+//   int id;
+//   double x,y,dx_norm,dy_norm;
 // } FlowPoint;
+
+typedef struct {
+  double y,x,dy,dx,dy_norm,dx_norm,norm,norm_norm;
+} FlowPoint;
 
 class MyApp : public App {
 public:
@@ -54,11 +54,11 @@ public:
         reader.addType(CSVReader::REAL);
         reader.addType(CSVReader::REAL);
         reader.addType(CSVReader::REAL);
-        // reader.addType(CSVReader::REAL);
-        // reader.addType(CSVReader::REAL);
-        // reader.addType(CSVReader::REAL);
-        // reader.addType(CSVReader::REAL);
-        reader.readFile("data/victims_data_sm_2.csv");
+        reader.addType(CSVReader::REAL);
+        reader.addType(CSVReader::REAL);
+        reader.addType(CSVReader::REAL);
+        reader.addType(CSVReader::REAL);
+        reader.readFile("data/victims_data_sm.csv");
 
         rows = reader.copyToStruct<FlowPoint>();  
     }
@@ -71,14 +71,14 @@ public:
     for (int i = 0; i < rows.size(); ++i) {
         
         float originX = map(-1.f,1.f,0,fieldWidth,rows[i].x);
-        float originY = map(1.f,-1.f,0,fieldWidth,rows[i].y);
+        float originY = map(1.f,-1.f,0,fieldHeight,rows[i].y);
         Vec3f originPoint = Vec3f(originX, originY, 0.f);
         float endX = map(-1.f,1.f,0,fieldWidth,rows[i].x + rows[i].dx_norm * scale);
-        float endY = map(1.f,-1.f,0,fieldWidth,rows[i].y + rows[i].dy_norm * scale);
+        float endY = map(1.f,-1.f,0,fieldHeight,rows[i].y + rows[i].dy_norm * scale);
         Vec3f endPoint = Vec3f(endX, endY,  0.f);
 
-        // Color color = HSV(rows[i].norm_norm, 1.0f, 1.0f);
-        Color color = HSV(0.0f, 1.0f, 1.0f); 
+        Color color = HSV(rows[i].norm_norm, 1.0f, 1.0f);
+        // Color color = HSV(0.0f, 1.0f, 1.0f); 
 
         // here we're rendering a point based on the vector field
         fieldMesh.vertex(originPoint);
@@ -108,7 +108,7 @@ public:
         auto pixel = mapData.at(i, j);
          // remap from 0, width to -1,1
         float x = map(-1.f,1.f,0,imgWidth,(float)i);
-        float y = map(1.f,-1.f,0,imgWidth,(float)j);
+        float y = map(1.f,-1.f,0,imgHeight,(float)j);
          // remap from 0, 255 to 0,1
         float r = map(0,1,0,255,(float)pixel.r);
         float g = map(0,1,0,255,(float)pixel.g);
@@ -164,9 +164,6 @@ public:
         // This line causes the program to crash but I am not sure why
         acceleration[i] += steer;
       }
-      // crashes on 78720
-      cout << "here" << i << endl;
-      
     }
     for (int i = 0; i < velocity.size(); i++) {
       // "semi-implicit" Euler integration
@@ -187,14 +184,10 @@ public:
   }
 
    // particle pos is assumed to be given in the screen space coords
-  Vec3f getFieldVector(Vec2f particlePos) {
-    float x_index = map(0, fieldWidth -1, -1.f, 1.f, particlePos.x);
-    float y_index = map(fieldHeight -1 , 0, -1.f, 1.f, particlePos.y);
-    return victimsForces[floor(y_index) * fieldHeight + floor(x_index)];
-  }
-
-  Vec3f getOriginFieldVector(int index) {
-    return victimsForces[index];
+  Vec3f getFieldVector(const Vec3f& particlePos) {
+    int x_index = floor(map(0, fieldWidth - 1, -1.f, 1.f, particlePos.x));
+    int y_index = floor(map(fieldHeight - 1, 0, -1.f, 1.f, particlePos.y));
+    return victimsForces[y_index * fieldWidth + x_index];
   }
 
 };
