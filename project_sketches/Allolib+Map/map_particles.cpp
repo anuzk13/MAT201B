@@ -9,76 +9,67 @@ smooth.  This is because interpolation is done on the GPU.
 
 
 #include "al/app/al_App.hpp"
-#include "al/math/al_Functions.hpp"
 #include "al/graphics/al_Image.hpp"
-#include "al/math/al_Random.hpp"
 #include "al/io/al_CSVReader.hpp"
+#include "al/app/al_GUIDomain.hpp"
 
 using namespace al;
 using namespace std;
 
-// typedef struct {
-//   int id;
-//   double y,x,dy,dx,dy_norm,dx_norm,norm,norm_norm;
-// } FlowPoint;
-
 typedef struct {
-  int id;
-  double x,y,dx_norm,dy_norm;
+  double y,x,dy,dx,dy_norm,dx_norm,norm,norm_norm;
 } FlowPoint;
 
 class MyApp : public App {
 public:
 
-  float timeStep = 0.1;
-  float maxSpeedVF = 0.01;
-  float showField = 0.0;
-  // Parameter timeStep{"/timeStep", "", 0.1, 0.01, 0.6};
-  // Parameter maxSpeedVF{"/maxSpeedVF", "", 0.01, 0.1, 0.01};
-  // ParameterBool showField{"/showField", "", 0.0};
+  Parameter timeStep{"/timeStep", "", 0.1, 0.01, 0.6};
+  Parameter maxSpeedVF{"/maxSpeedVF", "", 0.01, 0.1, 0.01};
+  ParameterBool showField{"/showField", "", 0.0};
 
-  CSVReader reader;
+  // victim' data
   std::vector<FlowPoint> rows;
   Mesh fieldMesh;
   vector<Vec3f> victimsForces;
 
+  // displacement map data
   VAOMesh mesh;
   vector<Vec3f> velocity;
   vector<Vec3f> acceleration;
 
   int imgWidth, imgHeight;
-  // int fieldWidth = 1201;
-  // int fieldHeight = 1783;
-
-  int fieldWidth = 400;
-  int fieldHeight = 300;
-
+  int fieldWidth = 1201;
+  int fieldHeight = 1783;
 
   // image size
   // 1201 x 1782
 
   void onInit() override {
 
-    // auto GUIdomain = GUIDomain::enableGUI(defaultWindowDomain());
-    // auto &gui = GUIdomain->newGUI();
-    // gui.add(timeStep);   // add parameter to GUI
-    // gui.add(maxSpeedVF);
-    // gui.add(showField);
-    //  
-    // reader.addType(CSVReader::INT64);
+    // Gui params
+    auto GUIdomain = GUIDomain::enableGUI(defaultWindowDomain());
+    auto& gui = GUIdomain->newGUI();
+    gui.add(timeStep); // add parameter to GUI
+    gui.add(maxSpeedVF);
+    gui.add(showField);
+  
+    // read CSV info
+    CSVReader reader;
     reader.addType(CSVReader::REAL);
     reader.addType(CSVReader::REAL);
     reader.addType(CSVReader::REAL);
     reader.addType(CSVReader::REAL);
-    // reader.addType(CSVReader::REAL);
-    // reader.addType(CSVReader::REAL);
-    // reader.addType(CSVReader::REAL);
-    // reader.addType(CSVReader::REAL);
-    reader.readFile("data/victims_data_sm.csv");
+    reader.addType(CSVReader::REAL);
+    reader.addType(CSVReader::REAL);
+    reader.addType(CSVReader::REAL);
+    reader.addType(CSVReader::REAL);
+    reader.readFile("data/victims_data.csv");
 
     rows = reader.copyToStruct<FlowPoint>();
+  }
 
-
+  void onCreate() {
+    // create visualization of victim's data field
     fieldMesh = Mesh(Mesh::LINES);
     float scale = 1;
     for (int i = 0; i < rows.size(); ++i) {
@@ -90,8 +81,8 @@ public:
         float endY = map(1.f,-1.f,0,fieldHeight,rows[i].y + rows[i].dy_norm * scale);
         Vec3f endPoint = Vec3f(endX, endY,  0.f);
 
-        // Color color = HSV(rows[i].norm_norm, 1.0f, 1.0f);
-        Color color = HSV(0.0f, 1.0f, 1.0f); 
+        Color color = HSV(rows[i].norm_norm, 1.0f, 1.0f);
+        // Color color = HSV(0.0f, 1.0f, 1.0f); 
 
         // here we're rendering a point based on the vector field
         fieldMesh.vertex(originPoint);
@@ -100,13 +91,9 @@ public:
         fieldMesh.color(color);
         victimsForces.push_back((endPoint - originPoint).normalize());
     }
-  }
 
-  void onCreate() {
-    // Load a .jpg file
-    // const char *mapImage = "./data/displacement.png";
-    const char *mapImage = "./data/displacement_sm.png";
-
+    // read map data
+    const char *mapImage = "./data/displacement.png";
     auto mapData = Image(mapImage);
 
     if (mapData.array().size() == 0) {
@@ -161,9 +148,9 @@ public:
 
     g.meshColor();
 
-    // if (showField.get() == 1.0f) {
-    //   g.draw(fieldMesh);
-    // }
+    if (showField.get() == 1.0f) {
+      g.draw(fieldMesh);
+    }
   
   }
 
@@ -181,7 +168,6 @@ public:
     for (int i = 0; i < vertex.size(); i++) {
       if (abs(vertex[i].x) <= 1.0f &&  abs(vertex[i].y) <= 1.0f) {
         Vec3f steer = getFieldVector(vertex[i]) * maxSpeedVF - velocity[i];
-        Vec3f steer2 = getOriginFieldVector(i) * maxSpeedVF - velocity[i];
         // This line causes the program to crash but I am not sure why
         acceleration[i] += steer;
       }
@@ -196,25 +182,19 @@ public:
     for (auto &a : acceleration) a.zero();
     mesh.update();
 
-    // vertex[0].lerp(vertex[vertex.size()-1], 0.1);
-    // for (int i = 1; i < vertex.size(); i++) {
-    //   vertex[i].lerp(vertex[i-1], 0.1);
-    // }
   }
 
+  // mind_d max_d min max destination
+  // min_o max_o 
   float map (float min_d, float max_d, float min_o, float max_o, float x) {
     return (max_d-min_d)*(x - min_o) / (max_o - min_o) + min_d ;
   }
 
    // particle pos is assumed to be given in the screen space coords
-  Vec3f getFieldVector(Vec2f particlePos) {
-    float x_index = map(0, fieldWidth -1, -1.f, 1.f, particlePos.x);
-    float y_index = map(fieldHeight -1 , 0, -1.f, 1.f, particlePos.y);
-    return victimsForces[floor(y_index) * fieldHeight + floor(x_index)];
-  }
-
-  Vec3f getOriginFieldVector(int index) {
-    return victimsForces[index];
+  Vec3f getFieldVector(const Vec3f& particlePos) {
+    int x_index = floor(map(0, fieldWidth - 1, -1.f, 1.f, particlePos.x));
+    int y_index = floor(map(fieldHeight - 1, 0, -1.f, 1.f, particlePos.y));
+    return victimsForces[y_index * fieldWidth + x_index];
   }
 
 };
