@@ -23,7 +23,10 @@ typedef struct {
 class MyApp : public App {
 public:
 
-  Parameter maxSpeed{"/", "", 0.02, 0.01, 0.6};
+  // Parameter maxSpeed{"/maxSpeed", "", 0.02, 0.01, 0.6};
+  // // sensile to this conditions
+  // Parameter timeStep{"/timeStep", "", 0.01, 0.01, 0.6};
+  Parameter maxSpeed{"/maxSpeed", "", 0.02, 0.01, 0.6};
   Parameter timeStep{"/timeStep", "", 0.01, 0.01, 0.6};
   ParameterBool showField{"/showField", "", 0.0};
 
@@ -40,6 +43,8 @@ public:
   int imgWidth, imgHeight;
   int fieldWidth = 1201;
   int fieldHeight = 1783;
+
+  double angle{0};
 
   // image size
   // 1201 x 1782
@@ -71,14 +76,13 @@ public:
   void onCreate() {
     // create visualization of victim's data field
     fieldMesh = Mesh(Mesh::LINES);
-    float scale = 1;
     for (int i = 0; i < rows.size(); ++i) {
       if (abs(rows[i].dx_norm > 0) || abs(rows[i].dy_norm) > 0) {
         float originX = map(-1.f,1.f,0,fieldWidth,rows[i].x);
         float originY = map(1.f,-1.f,0,fieldHeight,rows[i].y);
         Vec3f originPoint = Vec3f(originX, originY, 0.f);
-        float endX = map(-1.f,1.f,0,fieldWidth,rows[i].x + rows[i].dx_norm * scale);
-        float endY = map(1.f,-1.f,0,fieldHeight,rows[i].y + rows[i].dy_norm * scale);
+        float endX = map(-1.f,1.f,0,fieldWidth,rows[i].x + rows[i].dx_norm);
+        float endY = map(1.f,-1.f,0,fieldHeight,rows[i].y + rows[i].dy_norm);
         Vec3f endPoint = Vec3f(endX, endY,  0.f);
 
         Color color = HSV(rows[i].norm_norm, 1.0f, 1.0f);
@@ -89,7 +93,9 @@ public:
         fieldMesh.color(color);
         fieldMesh.vertex(endPoint);
         fieldMesh.color(color);
-        victimsForces.push_back((originPoint - endPoint).normalize());
+        Vec3f diff = -(originPoint - endPoint).normalize();
+        float zDir = max(abs(rows[i].dx_norm),abs(rows[i].dy_norm));
+        victimsForces.push_back(Vec3f(diff.x, diff.y, zDir));
       } else {
         victimsForces.push_back(Vec3f(0,0,0));
       }
@@ -113,22 +119,24 @@ public:
     for (int j = 0; j < imgHeight; ++j) {
       for (int i = 0; i < imgWidth; ++i) {
         auto pixel = mapData.at(i, j);
-         // remap from 0, width to -1,1
-        float x = map(-1.f,1.f,0,imgWidth,(float)i);
-        float y = map(1.f,-1.f,0,imgHeight,(float)j);
-         // remap from 0, 255 to 0,1
-        float r = map(0,1,0,255,(float)pixel.r);
-        float g = map(0,1,0,255,(float)pixel.g);
-        float b = map(0,1,0,255,(float)pixel.b);
-        Color color = Color(r,g,b);
-        HSV hsvColor = HSV(color);
-        float z = map(0,0.2,0,1,hsvColor.v);
+        if (pixel.a) {
+           // remap from 0, width to -1,1
+          float x = map(-1.f,1.f,0,imgWidth,(float)i);
+          float y = map(1.f,-1.f,0,imgHeight,(float)j);
+          // remap from 0, 255 to 0,1
+          float r = map(0,1,0,255,(float)pixel.r);
+          float g = map(0,1,0,255,(float)pixel.g);
+          float b = map(0,1,0,255,(float)pixel.b);
+          Color color = Color(r,g,b);
+          HSV hsvColor = HSV(color);
+          float z = map(0,0.2,0,1,hsvColor.v);
 
-        mesh.vertex(x,y,z);
-        mesh.color(color);
+          mesh.vertex(x,y,z);
+          mesh.color(color);
 
-        velocity.push_back(0);
-        acceleration.push_back(0);
+          velocity.push_back(0);
+          acceleration.push_back(0);
+        }
       }
 
     }
@@ -139,8 +147,9 @@ public:
   }
 
   void onDraw(Graphics &g) {
+    g.rotate(angle, Vec3d(0, 1, 0));
     //color of bakcgrund
-    g.clear(0.2f);
+    g.clear(0);
     // size of point primitive
     g.pointSize(1);
     // show color of the vertex
@@ -163,8 +172,10 @@ public:
 
   void onAnimate(double dt_ms) {
 
-    double dt = timeStep;
+    double dt = timeStep / 10;
     auto& vertex = mesh.vertices();
+
+    // angle += timeStep * 100;
 
     // vector field
     for (int i = 0; i < vertex.size(); i++) {
