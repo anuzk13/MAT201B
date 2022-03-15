@@ -23,9 +23,6 @@ typedef struct {
 class MyApp : public App {
 public:
 
-  // Parameter maxSpeed{"/maxSpeed", "", 0.02, 0.01, 0.6};
-  // // sensile to this conditions
-  // Parameter timeStep{"/timeStep", "", 0.01, 0.01, 0.6};
   Parameter maxSpeed{"/maxSpeed", "", 0.02, 0.01, 0.6};
   Parameter timeStep{"/timeStep", "", 0.01, 0.01, 0.6};
   Parameter spreadFactor{"/spreadFactor", "", 0.5, -10, 10};
@@ -96,9 +93,8 @@ public:
         fieldMesh.vertex(endPoint);
         fieldMesh.color(color);
         Vec3f diff = (originPoint - endPoint).normalize();
-        float zDir = max(abs(rows[i].dx_norm),abs(rows[i].dy_norm));
-        // victimsForces.push_back(Vec3f(diff.x, diff.y, zDir));
-        victimsForces.push_back(diff);
+        float zDir = min(abs(rows[i].dx_norm),abs(rows[i].dy_norm));
+        victimsForces.push_back(Vec3f(diff.x, diff.y, zDir));
       } else {
         victimsForces.push_back(Vec3f(0,0,0));
       }
@@ -177,6 +173,7 @@ public:
 
     double dt = timeStep / 100;
     auto& vertex = mesh.vertices();
+    auto& colors = mesh.colors();
 
     // angle += timeStep * 100;
 
@@ -205,8 +202,11 @@ public:
       // "semi-implicit" Euler integration
       velocity[i] += acceleration[i] * dt;
       vertex[i] += velocity[i] * dt;
+      float v = map(0,1,0,0.2,vertex[i].z);
+      HSV hsvColor = HSV(0,0,v);
+      colors[i] = Color(hsvColor);
     }
-
+  
     // clear all accelerations (IMPORTANT!!)
     for (auto &a : acceleration) a.zero();
     mesh.update();
