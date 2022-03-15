@@ -43,7 +43,7 @@ public:
   int fieldWidth = 1201;
   int fieldHeight = 1783;
 
-  double angle{0};
+  double angle1,angle2;
 
   float whiteSaturation = 0.3;
   float mapHeight = 0.25;
@@ -77,6 +77,8 @@ public:
   }
 
   void onCreate() {
+    angle1 = 0;
+    angle2 = 100;
     // create visualization of victim's data field
     fieldMesh = Mesh(Mesh::LINES);
     for (int i = 0; i < rows.size(); ++i) {
@@ -152,7 +154,7 @@ public:
   }
 
   void onDraw(Graphics &g) {
-    g.rotate(angle, Vec3d(0, 1, 0));
+    g.rotate(angle1 , 0, 1, 0);
     //color of bakcgrund
     g.clear(0);
     // size of point primitive
@@ -176,12 +178,14 @@ public:
   }
 
   void onAnimate(double dt_ms) {
+    angle1 += M_PI* 10/angle2;
+    if (abs(angle1) > M_PI * 10) {
+        angle2 = -angle2;
+    }
 
     double dt = timeStep / 100;
     auto& vertex = mesh.vertices();
     auto& colors = mesh.colors();
-
-    // angle += timeStep * 100;
 
     // vector field
     for (int i = 0; i < vertex.size(); i++) {
