@@ -191,6 +191,12 @@ public:
           acceleration[i] += steer;
         } else if (velocity[i].mag() > 0) {
           victimsForces[get<0>(fieldVector)] = velocity[i].normalize() * spreadFactor;
+          Color color = HSV(victimsForces[get<0>(fieldVector)].mag(), 1.0f, 1.0f);
+          // Color color = HSV(0.0f, 1.0f, 1.0f); 
+          fieldMesh.vertex(Vec3f(vertex[i].x, vertex[i].y,0));
+          fieldMesh.color(color);
+          fieldMesh.vertex(Vec3f(vertex[i].x, vertex[i].y,0) + velocity[i].normalize()/1000);
+          fieldMesh.color(color);
         }
       }
     }
@@ -226,6 +232,7 @@ public:
 
 int main() {
   MyApp app;
+  app.dimensions(3800 , 2100);
   app.title("imageTexture");
   app.start();
 }
