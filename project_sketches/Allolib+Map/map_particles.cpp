@@ -37,12 +37,16 @@ public:
   VAOMesh mesh;
   vector<Vec3f> velocity;
   vector<Vec3f> acceleration;
+  vector<Vec3f> originalPos;
 
   int imgWidth, imgHeight;
   int fieldWidth = 1201;
   int fieldHeight = 1783;
 
   double angle{0};
+
+  float whiteSaturation = 0.3;
+  float mapHeight = 0.25;
 
   // image size
   // 1201 x 1782
@@ -126,12 +130,14 @@ public:
           float r = map(0,1,0,255,(float)pixel.r);
           float g = map(0,1,0,255,(float)pixel.g);
           float b = map(0,1,0,255,(float)pixel.b);
-          Color color = Color(r,g,b);
-          HSV hsvColor = HSV(color);
-          float z = map(0,0.2,0,1,hsvColor.v);
+          HSV hsvColor = HSV(Color(r,g,b));
+          float z = map(0,mapHeight,0,1,hsvColor.v);
+          float v = map(0,1,0,whiteSaturation,z);
+          hsvColor = HSV(0,0,v);
 
           mesh.vertex(x,y,z);
-          mesh.color(color);
+          mesh.color(Color(hsvColor));
+          originalPos.push_back(Vec3f(x,y,z));
 
           velocity.push_back(0);
           acceleration.push_back(0);
@@ -202,9 +208,17 @@ public:
       // "semi-implicit" Euler integration
       velocity[i] += acceleration[i] * dt;
       vertex[i] += velocity[i] * dt;
-      float v = map(0,1,0,0.2,vertex[i].z);
+      float v = map(0,1,0,whiteSaturation,vertex[i].z);
       HSV hsvColor = HSV(0,0,v);
       colors[i] = Color(hsvColor);
+      // respawn 
+      // if (abs(vertex[i].x) >= 1.5f || abs(vertex[i].y) >= 1.5f) {
+      if (vertex[i].x * vertex[i].x + vertex[i].y * vertex[i].y + vertex[i].z * vertex[i].z >= 2.25) {
+        vertex[i] = originalPos[i];
+        float v = map(0,1,0,whiteSaturation,vertex[i].z);
+        HSV hsvColor = HSV(0,0,v);
+        colors[i] = Color(hsvColor);
+      }
     }
   
     // clear all accelerations (IMPORTANT!!)
