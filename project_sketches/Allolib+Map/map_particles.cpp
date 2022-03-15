@@ -73,7 +73,7 @@ public:
     fieldMesh = Mesh(Mesh::LINES);
     float scale = 1;
     for (int i = 0; i < rows.size(); ++i) {
-      if (rows[i].dx_norm > 0 || rows[i].dy_norm > 0) {
+      if (abs(rows[i].dx_norm > 0) || abs(rows[i].dy_norm) > 0) {
         float originX = map(-1.f,1.f,0,fieldWidth,rows[i].x);
         float originY = map(1.f,-1.f,0,fieldHeight,rows[i].y);
         Vec3f originPoint = Vec3f(originX, originY, 0.f);
@@ -89,7 +89,7 @@ public:
         fieldMesh.color(color);
         fieldMesh.vertex(endPoint);
         fieldMesh.color(color);
-        victimsForces.push_back((endPoint - originPoint).normalize());
+        victimsForces.push_back((originPoint - endPoint).normalize());
       } else {
         victimsForces.push_back(Vec3f(0,0,0));
       }
