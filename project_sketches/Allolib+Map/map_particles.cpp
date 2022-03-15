@@ -93,9 +93,10 @@ public:
         fieldMesh.color(color);
         fieldMesh.vertex(endPoint);
         fieldMesh.color(color);
-        Vec3f diff = -(originPoint - endPoint).normalize();
+        Vec3f diff = (originPoint - endPoint).normalize();
         float zDir = max(abs(rows[i].dx_norm),abs(rows[i].dy_norm));
-        victimsForces.push_back(Vec3f(diff.x, diff.y, zDir));
+        // victimsForces.push_back(Vec3f(diff.x, diff.y, zDir));
+        victimsForces.push_back(diff);
       } else {
         victimsForces.push_back(Vec3f(0,0,0));
       }
