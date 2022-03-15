@@ -28,6 +28,7 @@ public:
   // Parameter timeStep{"/timeStep", "", 0.01, 0.01, 0.6};
   Parameter maxSpeed{"/maxSpeed", "", 0.02, 0.01, 0.6};
   Parameter timeStep{"/timeStep", "", 0.01, 0.01, 0.6};
+  Parameter spreadFactor{"/spreadFactor", "", 0.5, -10, 10};
   ParameterBool showField{"/showField", "", 0.0};
 
   // victim' data
@@ -57,6 +58,7 @@ public:
     gui.add(timeStep); // add parameter to GUI
     gui.add(maxSpeed);
     gui.add(showField);
+    gui.add(spreadFactor);
   
     // read CSV info
     CSVReader reader;
@@ -173,7 +175,7 @@ public:
 
   void onAnimate(double dt_ms) {
 
-    double dt = timeStep / 10;
+    double dt = timeStep / 100;
     auto& vertex = mesh.vertices();
 
     // angle += timeStep * 100;
@@ -184,13 +186,11 @@ public:
         // cout << "looking at vertex" << i << endl;
         tuple<int, Vec3f> fieldVector = getFieldVector(vertex[i]);
         Vec3f direction = get<1>(fieldVector);
-        // cout << "direction is" << direction << endl;
         if (direction.mag() > 0) {
           Vec3f steer = (direction - velocity[i])* maxSpeed;
-          // This line causes the program to crash but I am not sure why
           acceleration[i] += steer;
         } else if (velocity[i].mag() > 0) {
-          victimsForces[get<0>(fieldVector)] = velocity[i].normalize();
+          victimsForces[get<0>(fieldVector)] = velocity[i].normalize() * spreadFactor;
         }
       }
     }
