@@ -24,7 +24,7 @@ class MyApp : public App {
 public:
 
   Parameter maxSpeed{"/", "", 0.02, 0.01, 0.6};
-  Parameter timeStep{"/timeStep", "", 0.1, 0.01, 0.6};
+  Parameter timeStep{"/timeStep", "", 0.01, 0.01, 0.6};
   ParameterBool showField{"/showField", "", 0.0};
 
   // victim' data
@@ -134,21 +134,8 @@ public:
     }
     // Generate the geometry onto which to display the texture
     mesh.primitive(Mesh::POINTS);
-    nav().pullBack(4);
+    nav().pullBack(6);
     auto& vertex = mesh.vertices();
-
-    for (int i = 0; i < vertex.size(); i++) {
-      if (abs(vertex[i].x) <= 1.0f &&  abs(vertex[i].y) <= 1.0f) {
-        // cout << "looking at vertex" << i << endl;
-        Vec3f direction = getFieldVector(vertex[i]);
-        // cout << "direction is" << direction << endl;
-        if (direction.mag() > 0.01) {
-          Vec3f steer = (direction - velocity[i])* maxSpeed;
-          // This line causes the program to crash but I am not sure why
-          acceleration[i] += steer;
-        }
-      }
-    }
   }
 
   void onDraw(Graphics &g) {
@@ -161,7 +148,7 @@ public:
      // draw the mesh
     g.draw(mesh);
     // g.draw(wire);
-
+    g.pointSize(8);
     g.meshColor();
 
     if (showField.get() == 1.0f) {
@@ -180,7 +167,21 @@ public:
     auto& vertex = mesh.vertices();
 
     // vector field
-
+    for (int i = 0; i < vertex.size(); i++) {
+      if (abs(vertex[i].x) <= 1.0f &&  abs(vertex[i].y) <= 1.0f) {
+        // cout << "looking at vertex" << i << endl;
+        tuple<int, Vec3f> fieldVector = getFieldVector(vertex[i]);
+        Vec3f direction = get<1>(fieldVector);
+        // cout << "direction is" << direction << endl;
+        if (direction.mag() > 0) {
+          Vec3f steer = (direction - velocity[i])* maxSpeed;
+          // This line causes the program to crash but I am not sure why
+          acceleration[i] += steer;
+        } else if (velocity[i].mag() > 0) {
+          victimsForces[get<0>(fieldVector)] = velocity[i].normalize();
+        }
+      }
+    }
    
     for (int i = 0; i < velocity.size(); i++) {
       // "semi-implicit" Euler integration
@@ -201,11 +202,11 @@ public:
   }
 
    // particle pos is assumed to be given in the screen space coords
-  Vec3f getFieldVector(const Vec3f& particlePos) {
+  tuple<int, Vec3f> getFieldVector(const Vec3f& particlePos) {
     int x_index = floor(map(0, fieldWidth - 1, -1.f, 1.f, particlePos.x));
     int y_index = floor(map(fieldHeight - 1, 0, -1.f, 1.f, particlePos.y));
-    // cout << "result is at vertex" << y_index * fieldWidth + x_index << endl;
-    return victimsForces[y_index * fieldWidth + x_index];
+    int index = y_index * fieldWidth + x_index;
+    return make_tuple(index, victimsForces[index]);
   }
 
 };
